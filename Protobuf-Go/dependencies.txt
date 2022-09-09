@@ -1,0 +1,7 @@
+apt install -y protobuf-compiler
+sudo apt install golang-goprotobuf-dev
+
+
+Comandos: 
+go get -u github.com/golang/protobuf/proto (ya está descargado, ignorar warning de usar otro link, solo sirve éste)
+protoc --go_out=. --go_opt=paths=source_relative ./models/addressbook.proto 
