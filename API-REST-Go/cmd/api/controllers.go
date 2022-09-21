@@ -1,7 +1,7 @@
 package main
 
 import (
-	c "API-REST/controllers"
+	c "API-REST/cmd/api/controllers"
 )
 
 type controllers struct {

@@ -14,8 +14,8 @@ import (
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
 
+	util "API-REST/cmd/api/utilities"
 	m "API-REST/models"
-	util "API-REST/utilities"
 )
 
 // CONTROLLER ***************************************************************

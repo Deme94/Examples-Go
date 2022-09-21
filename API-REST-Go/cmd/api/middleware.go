@@ -8,7 +8,7 @@ import (
 
 	"github.com/pascaldekloe/jwt"
 
-	util "API-REST/utilities"
+	util "API-REST/cmd/api/utilities"
 )
 
 func (s *server) enableCORS(handler http.Handler) http.Handler {

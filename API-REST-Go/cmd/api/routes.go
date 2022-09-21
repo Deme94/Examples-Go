@@ -7,7 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 
-	util "API-REST/utilities"
+	util "API-REST/cmd/api/utilities"
 )
 
 func (s *server) wrap(next http.Handler) httprouter.Handle {
