@@ -20,7 +20,7 @@ const VERSION = "1.0.0"
 var domain = os.Getenv("DOMAIN")
 var p, _ = strconv.Atoi(os.Getenv("SERVER_PORT"))
 var env = os.Getenv("ENVIRONMENT")
-var secret = os.Getenv("SERVER_JWT_SECRET")
+var secret = os.Getenv("SERVER_JWT")
 
 // --------------------------------------------------
 

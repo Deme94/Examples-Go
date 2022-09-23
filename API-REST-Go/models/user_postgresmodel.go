@@ -9,10 +9,11 @@ import (
 )
 
 type User struct {
-	ID                 int    `json:"id"`
-	Name               string `json:"name"`
-	Email              string `json:"email"`
-	Password           string
+	ID                 int       `json:"id"`
+	Name               string    `json:"name"`
+	Email              string    `json:"email"`
+	Password           string    `json:"-"`
+	PhotoName          string    `json:"-"`
 	CreatedAt          time.Time `json:"created_at"`
 	LastLogin          time.Time `json:"last_login"`
 	LastPasswordChange time.Time `json:"last_password_change"`
@@ -28,8 +29,8 @@ func NewUserModel(db *buildsqlx.DB) *UserModel {
 }
 
 // DB QUERIES -----------------------------------------------------------
-func (t *UserModel) GetAll() ([]*User, error) {
-	res, err := t.Db.Table("users").Select("id", "name", "email", "created_at", "last_login", "last_password_change").Get()
+func (m *UserModel) GetAll() ([]*User, error) {
+	res, err := m.Db.Table("users").Select("id", "name", "email", "created_at", "last_login", "last_password_change").Get()
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +61,8 @@ func (t *UserModel) GetAll() ([]*User, error) {
 
 	return usrs, nil
 }
-func (t *UserModel) Get(id int) (*User, error) {
-	res, err := t.Db.Table("users").Select("name", "email", "created_at", "last_login", "last_password_change").Where("id", "=", id).Get()
+func (m *UserModel) Get(id int) (*User, error) {
+	res, err := m.Db.Table("users").Select("name", "email", "created_at", "last_login", "last_password_change").Where("id", "=", id).Get()
 	if err != nil {
 		return nil, err
 	}
@@ -89,28 +90,10 @@ func (t *UserModel) Get(id int) (*User, error) {
 
 	return &u, nil
 }
-func (t *UserModel) Insert(u *User) error {
-	email := strings.ToLower(u.Email)
-
-	err := t.Db.Table("users").Insert(map[string]interface{}{"name": u.Name, "email": email, "password": u.Password, "created_at": "NOW()", "last_password_change": "NOW()"})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (t *UserModel) Update(u *User) error {
-	_, err := t.Db.Table("users").Where("id", "=", u.ID).Update(map[string]interface{}{"name": u.Name, "email": u.Email, "password": u.Password, "last_password_change": "NOW()"})
-	return err
-}
-func (t *UserModel) Delete(id int) error {
-	_, err := t.Db.Table("users").Where("id", "=", id).Delete()
-	return err
-}
-
-func (t *UserModel) GetByEmailWithPassword(email string) (*User, error) {
+func (m *UserModel) GetByEmailWithPassword(email string) (*User, error) {
 	email = strings.ToLower(email)
 
-	res, err := t.Db.Table("users").Select("id", "name", "password", "created_at", "last_login", "last_password_change").Where("email", "=", email).Get()
+	res, err := m.Db.Table("users").Select("id", "name", "password", "created_at", "last_login", "last_password_change").Where("email", "=", email).Get()
 	if err != nil {
 		return nil, err
 	}
@@ -119,20 +102,60 @@ func (t *UserModel) GetByEmailWithPassword(email string) (*User, error) {
 	}
 	r := res[0]
 
+	// Atributes can be nil
+	lastLogin := time.Time{}
+	ll := r["last_login"]
+	if ll != nil {
+		lastLogin = ll.(time.Time)
+	}
+
 	u := User{
-		ID:                 r["id"].(int), // la DB devuelve interface{} y se hace cast a int
+		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
 		Name:               r["name"].(string),
 		Email:              email,
 		Password:           r["password"].(string),
 		CreatedAt:          r["created_at"].(time.Time),
-		LastLogin:          r["last_login"].(time.Time),
+		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
 	}
 
 	return &u, nil
 }
-func (t *UserModel) UpdatePassword(id int, password string) error {
+func (m *UserModel) GetPhoto(id int) (string, error) {
+	res, err := m.Db.Table("users").Select("photo_name").Where("id", "=", id).Get()
+	if err != nil {
+		return "", err
+	}
+	if len(res) == 0 {
+		return "", errors.New("user not found")
+	}
+
+	return res[0]["photo_name"].(string), nil
+}
+func (m *UserModel) Insert(u *User) error {
+	email := strings.ToLower(u.Email)
+
+	err := m.Db.Table("users").Insert(map[string]interface{}{"name": u.Name, "email": email, "password": u.Password, "created_at": "NOW()", "last_password_change": "NOW()"})
+	if err != nil {
+		return err
+	}
 	return nil
+}
+func (m *UserModel) Update(u *User) error {
+	_, err := m.Db.Table("users").Where("id", "=", u.ID).Update(map[string]interface{}{"name": u.Name, "email": u.Email, "password": u.Password, "last_password_change": "NOW()"})
+	return err
+}
+func (m *UserModel) UpdatePassword(id int, password string) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"password": password, "last_password_change": "NOW()"})
+	return err
+}
+func (m *UserModel) UpdatePhoto(id int, photoName string) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"photo_name": photoName})
+	return err
+}
+func (m *UserModel) Delete(id int) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Delete()
+	return err
 }
 
 // ...

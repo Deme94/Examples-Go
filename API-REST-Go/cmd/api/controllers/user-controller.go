@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,6 +16,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/kolesa-team/go-webp/decoder"
+	"github.com/kolesa-team/go-webp/encoder"
+	"github.com/kolesa-team/go-webp/webp"
 
 	util "API-REST/cmd/api/utilities"
 	m "API-REST/models"
@@ -58,16 +65,30 @@ func (c *UserController) generateJwtToken(subject string, secret string) ([]byte
 // ...
 
 // PAYLOADS (json input) ----------------------------------------------------------------
-type userPayload struct {
-	Name               string    `json:"name"`
-	Email              string    `json:"email"`
-	Password           string    `json:"password"`
-	LastPasswordChange time.Time `json:"last_password_change"`
+type userRequest struct {
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	PhotoBase64 string `json:"photo_base64"`
+	Password    string `json:"password"`
 }
-type credentials struct {
+
+type loginRequest struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type photoRequest struct {
+	PhotoBase64 string `json:"photo_base64"`
+}
+
+type loginResponse struct {
+	Id    int    `json:"user_id"`
+	Token string `json:"token"`
+}
+
+type okResponse struct {
+	OK bool `json:"ok"`
 }
 
 // ...
@@ -100,22 +121,63 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, u, "user")
 }
+func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		c.logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	imageName, err := c.model.GetPhoto(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	// Get webp file
+	f, err := os.OpenFile("./images/"+imageName+".webp", os.O_RDWR, 0644)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	defer f.Close()
+	// Decode webp file to image
+	image, err := webp.Decode(f, &decoder.Options{})
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	// Encode image into buffer
+	var buf bytes.Buffer
+	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 75)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	webp.Encode(&buf, image, options)
+	// Get bytes and encode to base64
+	imageBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	util.WriteJSON(w, http.StatusOK, imageBase64, "photo")
+}
 func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
-	var creds credentials
+	var req loginRequest
 
-	err := json.NewDecoder(r.Body).Decode(&creds)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), 12)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	err = c.model.Insert(&m.User{Name: creds.Name, Email: creds.Email, Password: string(hashedPassword)})
+	err = c.model.Insert(&m.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -134,10 +196,15 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var p userPayload
+	var req userRequest
 
-	uJson := r.PostFormValue("user")
-	err = json.Unmarshal([]byte(uJson), &p)
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -145,10 +212,9 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 
 	var u m.User
 	u.ID = id
-	u.Name = p.Name // cambiar por ruta del archivo creado
-	u.Email = p.Email
-	u.Password = p.Password
-	u.LastPasswordChange = p.LastPasswordChange
+	u.Name = req.Name // cambiar por ruta del archivo creado
+	u.Email = req.Email
+	u.Password = string(hashedPassword)
 
 	err = c.model.Update(&u)
 	if err != nil {
@@ -156,11 +222,65 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type jsonResp struct {
-		OK bool `json:"ok"`
+	ok := okResponse{
+		OK: true,
+	}
+	util.WriteJSON(w, http.StatusOK, ok, "OK")
+}
+func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		c.logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(w, err)
+		return
 	}
 
-	ok := jsonResp{
+	var req photoRequest
+
+	//uJson := r.PostFormValue("user")
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	// Decode base64 webp to bytes
+	unbased, err := base64.StdEncoding.DecodeString(req.PhotoBase64)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	// Decode bytes to image
+	reader := bytes.NewReader(unbased)
+	image, err := webp.Decode(reader, &decoder.Options{})
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	// Create file
+	imageName := "user" + fmt.Sprint(id)
+	f, err := os.OpenFile("./images/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	defer f.Close()
+	// Encode image into file
+	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 75)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	webp.Encode(f, image, options)
+
+	err = c.model.UpdatePhoto(id, imageName)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	ok := okResponse{
 		OK: true,
 	}
 	util.WriteJSON(w, http.StatusOK, ok, "OK")
@@ -181,26 +301,22 @@ func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type jsonResp struct {
-		OK bool `json:"ok"`
-	}
-
-	ok := jsonResp{
+	ok := okResponse{
 		OK: true,
 	}
 	util.WriteJSON(w, http.StatusOK, ok, "OK")
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	var creds credentials
+	var req loginRequest
 
-	err := json.NewDecoder(r.Body).Decode(&creds)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	u, err := c.model.GetByEmailWithPassword(creds.Email)
+	u, err := c.model.GetByEmailWithPassword(req.Email)
 	if err != nil {
 		util.ErrorJSON(w, err, http.StatusUnauthorized)
 		return
@@ -208,7 +324,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	hashedPassword := u.Password
 
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(creds.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password))
 	if err != nil {
 		util.ErrorJSON(w, err, http.StatusUnauthorized)
 		return
@@ -221,7 +337,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, string(token), "response")
+	util.WriteJSON(w, http.StatusOK, loginResponse{Id: u.ID, Token: string(token)}, "response")
 }
 
 // ...

@@ -24,12 +24,14 @@ func (s *server) routes() http.Handler {
 	// Unsecured routes
 	router.HandlerFunc(http.MethodGet, "/status", s.statusHandler)
 
-	router.HandlerFunc(http.MethodPost, "/v1/login", s.controllers.user.Login)
-	router.HandlerFunc(http.MethodPost, "/v1/register", s.controllers.user.Insert)
-	router.HandlerFunc(http.MethodGet, "/v1/users", s.controllers.user.GetAll)
-	router.HandlerFunc(http.MethodGet, "/v1/users/:id", s.controllers.user.Get)
-	router.HandlerFunc(http.MethodPut, "/v1/users/update/:id", s.controllers.user.Update)
-	router.HandlerFunc(http.MethodDelete, "/v1/users/delete/:id", s.controllers.user.Delete)
+	router.HandlerFunc(http.MethodPost, "/api/v1/login", s.controllers.user.Login)
+	router.HandlerFunc(http.MethodPost, "/api/v1/users", s.controllers.user.Insert)
+	router.HandlerFunc(http.MethodGet, "/api/v1/users", s.controllers.user.GetAll)
+	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id", s.controllers.user.Get)
+	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/photo", s.controllers.user.GetPhoto)
+	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id", s.controllers.user.Update)
+	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id/photo", s.controllers.user.UpdatePhoto)
+	router.HandlerFunc(http.MethodDelete, "/api/v1/users/:id", s.controllers.user.Delete)
 
 	// ...
 
