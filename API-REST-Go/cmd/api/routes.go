@@ -29,8 +29,10 @@ func (s *server) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/api/v1/users", s.controllers.user.GetAll)
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id", s.controllers.user.Get)
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/photo", s.controllers.user.GetPhoto)
+	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/cv", s.controllers.user.GetCV)
 	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id", s.controllers.user.Update)
 	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id/photo", s.controllers.user.UpdatePhoto)
+	router.HandlerFunc(http.MethodPost, "/api/v1/users/:id/cv", s.controllers.user.UpdateCV)
 	router.HandlerFunc(http.MethodDelete, "/api/v1/users/:id", s.controllers.user.Delete)
 
 	// ...

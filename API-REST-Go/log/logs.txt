@@ -20,3 +20,14 @@
 2022/09/22 18:24:30 main.go:68: Started server on port 4000
 2022/09/22 18:42:30 main.go:68: Started server on port 4000
 2022/09/22 18:45:25 main.go:68: Started server on port 4000
+2022/09/24 13:01:52 main.go:68: Started server on port 4000
+2022/09/24 13:02:12 user-controller.go:130: invalid id parameter
+2022/09/24 13:13:26 main.go:68: Started server on port 4000
+2022/09/24 13:14:27 main.go:68: Started server on port 4000
+2022/09/24 13:17:11 user-controller.go:349: user's cv saved. Name: DemetrioNavarroMartinez_CV.pdf | Size: 133953
+2022/09/24 13:18:49 main.go:68: Started server on port 4000
+2022/09/24 13:19:47 main.go:68: Started server on port 4000
+2022/09/24 13:20:30 main.go:68: Started server on port 4000
+2022/09/24 13:21:31 main.go:68: Started server on port 4000
+2022/09/24 13:22:10 main.go:68: Started server on port 4000
+2022/09/24 13:22:46 main.go:68: Started server on port 4000

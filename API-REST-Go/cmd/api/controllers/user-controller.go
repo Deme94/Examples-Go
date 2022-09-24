@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -138,7 +140,7 @@ func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get webp file
-	f, err := os.OpenFile("./images/"+imageName+".webp", os.O_RDWR, 0644)
+	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_RDWR, 0644)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -161,6 +163,24 @@ func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	imageBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	util.WriteJSON(w, http.StatusOK, imageBase64, "photo")
+}
+func (c *UserController) GetCV(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		c.logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	cvName, err := c.model.GetCV(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	filePath := "./storage/users/" + cvName + ".pdf"
+	http.ServeFile(w, r, filePath)
 }
 func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
@@ -229,7 +249,6 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 }
 func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
-
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
 		c.logger.Print(errors.New("invalid id parameter"))
@@ -261,7 +280,7 @@ func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	// Create file
 	imageName := "user" + fmt.Sprint(id)
-	f, err := os.OpenFile("./images/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -273,12 +292,63 @@ func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 		log.Fatalln(err)
 	}
 	webp.Encode(f, image, options)
+	c.logger.Println("user's photo saved")
 
 	err = c.model.UpdatePhoto(id, imageName)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
+
+	ok := okResponse{
+		OK: true,
+	}
+	util.WriteJSON(w, http.StatusOK, ok, "OK")
+}
+func (c *UserController) UpdateCV(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		c.logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	// Retrieve the file from r
+	var maxUploadSize int64 = 1024 * 1024 //1mb
+
+	err = r.ParseMultipartForm(maxUploadSize)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	defer file.Close()
+
+	// Check if file is .pdf
+	if filepath.Ext(fileHeader.Filename) != ".pdf" {
+		util.ErrorJSON(w, errors.New("file extension must be pdf"))
+		return
+	}
+
+	// Create file
+	fileName := "usercv" + fmt.Sprint(id)
+	f, err := os.OpenFile("./storage/users/"+fileName+".pdf", os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	defer f.Close()
+	// Save file in storage
+	io.Copy(f, file)
+	c.logger.Printf("user's cv saved. Name: %s | Size: %d", fileHeader.Filename, fileHeader.Size)
+
+	// Save fileName in DB
+	c.model.UpdateCV(id, fileName)
 
 	ok := okResponse{
 		OK: true,

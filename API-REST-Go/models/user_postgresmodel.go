@@ -14,6 +14,7 @@ type User struct {
 	Email              string    `json:"email"`
 	Password           string    `json:"-"`
 	PhotoName          string    `json:"-"`
+	CVName             string    `json:"-"`
 	CreatedAt          time.Time `json:"created_at"`
 	LastLogin          time.Time `json:"last_login"`
 	LastPasswordChange time.Time `json:"last_password_change"`
@@ -132,6 +133,17 @@ func (m *UserModel) GetPhoto(id int) (string, error) {
 
 	return res[0]["photo_name"].(string), nil
 }
+func (m *UserModel) GetCV(id int) (string, error) {
+	res, err := m.Db.Table("users").Select("cv_name").Where("id", "=", id).Get()
+	if err != nil {
+		return "", err
+	}
+	if len(res) == 0 {
+		return "", errors.New("user not found")
+	}
+
+	return res[0]["cv_name"].(string), nil
+}
 func (m *UserModel) Insert(u *User) error {
 	email := strings.ToLower(u.Email)
 
@@ -151,6 +163,10 @@ func (m *UserModel) UpdatePassword(id int, password string) error {
 }
 func (m *UserModel) UpdatePhoto(id int, photoName string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"photo_name": photoName})
+	return err
+}
+func (m *UserModel) UpdateCV(id int, cvName string) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"cv_name": cvName})
 	return err
 }
 func (m *UserModel) Delete(id int) error {
