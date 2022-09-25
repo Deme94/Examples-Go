@@ -29,7 +29,7 @@ import (
 
 // CONTROLLER ***************************************************************
 type UserController struct {
-	Model     *m.UserModel
+	model     *m.UserModel
 	logger    *log.Logger
 	jwtSecret string
 	domain    string
@@ -37,7 +37,7 @@ type UserController struct {
 
 func NewUserController(db *buildsqlx.DB, logger *log.Logger, secret string, domain string) *UserController {
 	c := UserController{}
-	c.Model = &m.UserModel{Db: db}
+	c.model = &m.UserModel{Db: db}
 	c.logger = logger
 	c.jwtSecret = secret
 	c.domain = domain
@@ -62,6 +62,10 @@ func (c *UserController) generateJwtToken(subject string, secret string) ([]byte
 	}
 
 	return token, nil
+}
+
+func (c *UserController) CheckRole(id int) (string, error) {
+	return c.model.GetRole(id)
 }
 
 // ...
@@ -97,7 +101,7 @@ type okResponse struct {
 
 // API HANDLERS ---------------------------------------------------------------
 func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
-	usrs, err := c.Model.GetAll()
+	usrs, err := c.model.GetAll()
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -115,7 +119,7 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := c.Model.Get(id)
+	u, err := c.model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -133,7 +137,7 @@ func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageName, err := c.Model.GetPhoto(id)
+	imageName, err := c.model.GetPhoto(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -173,7 +177,7 @@ func (c *UserController) GetCV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cvName, err := c.Model.GetCV(id)
+	cvName, err := c.model.GetCV(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -195,7 +199,7 @@ func (c *UserController) GetSecuredUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if r.Context().Value("Claimer-Role").(string) == "admin" || fmt.Sprint(id) == r.Context().Value("Claimer-ID").(string) {
-		u, err := c.Model.Get(id)
+		u, err := c.model.Get(id)
 		if err != nil {
 			util.ErrorJSON(w, err)
 			return
@@ -218,7 +222,7 @@ func (c *UserController) GetSecuredAdmin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	u, err := c.Model.Get(id)
+	u, err := c.model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -241,7 +245,7 @@ func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.Model.Insert(&m.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
+	err = c.model.Insert(&m.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -280,7 +284,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	u.Email = req.Email
 	u.Password = string(hashedPassword)
 
-	err = c.Model.Update(&u)
+	err = c.model.Update(&u)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -338,7 +342,7 @@ func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	webp.Encode(f, image, options)
 	c.logger.Println("user's photo saved")
 
-	err = c.Model.UpdatePhoto(id, imageName)
+	err = c.model.UpdatePhoto(id, imageName)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -392,7 +396,7 @@ func (c *UserController) UpdateCV(w http.ResponseWriter, r *http.Request) {
 	c.logger.Printf("user's cv saved. Name: %s | Size: %d", fileHeader.Filename, fileHeader.Size)
 
 	// Save fileName in DB
-	c.Model.UpdateCV(id, fileName)
+	c.model.UpdateCV(id, fileName)
 
 	ok := okResponse{
 		OK: true,
@@ -409,7 +413,7 @@ func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.Model.Delete(id)
+	err = c.model.Delete(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -432,13 +436,13 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 
 	var u *m.User
 	if len(req.Email) != 0 {
-		u, err = c.Model.GetByEmailWithPassword(req.Email)
+		u, err = c.model.GetByEmailWithPassword(req.Email)
 		if err != nil {
 			util.ErrorJSON(w, err, http.StatusUnauthorized)
 			return
 		}
 	} else {
-		u, err = c.Model.GetByNameWithPassword(req.Name)
+		u, err = c.model.GetByNameWithPassword(req.Name)
 		if err != nil {
 			util.ErrorJSON(w, err, http.StatusUnauthorized)
 			return

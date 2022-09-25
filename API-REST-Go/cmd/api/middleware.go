@@ -72,7 +72,7 @@ func (s *server) checkToken(next http.Handler) http.Handler {
 			util.ErrorJSON(w, errors.New("unauthorized - invalid claimer"), http.StatusForbidden)
 			return
 		}
-		claimerRole, err := s.controllers.user.Model.GetRole(claimerId)
+		claimerRole, err := s.controllers.user.CheckRole(claimerId)
 		if err != nil {
 			util.ErrorJSON(w, errors.New("unauthorized - invalid claimer"), http.StatusForbidden)
 			return
