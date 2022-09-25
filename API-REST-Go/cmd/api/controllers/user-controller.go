@@ -29,7 +29,7 @@ import (
 
 // CONTROLLER ***************************************************************
 type UserController struct {
-	model     *m.UserModel
+	Model     *m.UserModel
 	logger    *log.Logger
 	jwtSecret string
 	domain    string
@@ -37,7 +37,7 @@ type UserController struct {
 
 func NewUserController(db *buildsqlx.DB, logger *log.Logger, secret string, domain string) *UserController {
 	c := UserController{}
-	c.model = &m.UserModel{Db: db}
+	c.Model = &m.UserModel{Db: db}
 	c.logger = logger
 	c.jwtSecret = secret
 	c.domain = domain
@@ -97,7 +97,7 @@ type okResponse struct {
 
 // API HANDLERS ---------------------------------------------------------------
 func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
-	usrs, err := c.model.GetAll()
+	usrs, err := c.Model.GetAll()
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -115,7 +115,7 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := c.model.Get(id)
+	u, err := c.Model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -133,7 +133,7 @@ func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageName, err := c.model.GetPhoto(id)
+	imageName, err := c.Model.GetPhoto(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -173,7 +173,7 @@ func (c *UserController) GetCV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cvName, err := c.model.GetCV(id)
+	cvName, err := c.Model.GetCV(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -181,6 +181,50 @@ func (c *UserController) GetCV(w http.ResponseWriter, r *http.Request) {
 
 	filePath := "./storage/users/" + cvName + ".pdf"
 	http.ServeFile(w, r, filePath)
+}
+
+// Example secured route with different behaviour for role user and role admin
+func (c *UserController) GetSecuredUser(w http.ResponseWriter, r *http.Request) {
+
+	params := r.Context().Value("params").(httprouter.Params)
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		c.logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	if r.Context().Value("Claimer-Role").(string) == "admin" || fmt.Sprint(id) == r.Context().Value("Claimer-ID").(string) {
+		u, err := c.Model.Get(id)
+		if err != nil {
+			util.ErrorJSON(w, err)
+			return
+		}
+
+		util.WriteJSON(w, http.StatusOK, u, "user")
+	} else {
+		util.ErrorJSON(w, errors.New("unauthorized - cannot get other user's data"), http.StatusForbidden)
+	}
+}
+
+// Example secured route only for admins - already checked by middleware
+func (c *UserController) GetSecuredAdmin(w http.ResponseWriter, r *http.Request) {
+	params := r.Context().Value("params").(httprouter.Params)
+
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		c.logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	u, err := c.Model.Get(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, u, "user")
 }
 func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
@@ -197,7 +241,7 @@ func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.model.Insert(&m.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
+	err = c.Model.Insert(&m.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -236,7 +280,7 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	u.Email = req.Email
 	u.Password = string(hashedPassword)
 
-	err = c.model.Update(&u)
+	err = c.Model.Update(&u)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -294,7 +338,7 @@ func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	webp.Encode(f, image, options)
 	c.logger.Println("user's photo saved")
 
-	err = c.model.UpdatePhoto(id, imageName)
+	err = c.Model.UpdatePhoto(id, imageName)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -348,7 +392,7 @@ func (c *UserController) UpdateCV(w http.ResponseWriter, r *http.Request) {
 	c.logger.Printf("user's cv saved. Name: %s | Size: %d", fileHeader.Filename, fileHeader.Size)
 
 	// Save fileName in DB
-	c.model.UpdateCV(id, fileName)
+	c.Model.UpdateCV(id, fileName)
 
 	ok := okResponse{
 		OK: true,
@@ -365,7 +409,7 @@ func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.model.Delete(id)
+	err = c.Model.Delete(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -386,10 +430,19 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := c.model.GetByEmailWithPassword(req.Email)
-	if err != nil {
-		util.ErrorJSON(w, err, http.StatusUnauthorized)
-		return
+	var u *m.User
+	if len(req.Email) != 0 {
+		u, err = c.Model.GetByEmailWithPassword(req.Email)
+		if err != nil {
+			util.ErrorJSON(w, err, http.StatusUnauthorized)
+			return
+		}
+	} else {
+		u, err = c.Model.GetByNameWithPassword(req.Name)
+		if err != nil {
+			util.ErrorJSON(w, err, http.StatusUnauthorized)
+			return
+		}
 	}
 
 	hashedPassword := u.Password

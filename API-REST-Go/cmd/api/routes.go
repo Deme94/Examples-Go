@@ -12,14 +12,15 @@ import (
 
 func (s *server) wrap(next http.Handler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := context.WithValue(r.Context(), struct{ p string }{"params"}, ps)
+		ctx := context.WithValue(r.Context(), "params", ps)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
 func (s *server) routes() http.Handler {
 	router := httprouter.New()
-	secure := alice.New(s.checkToken)
+	secureUser := alice.New(s.checkToken)
+	secureAdmin := alice.New(s.checkToken, s.checkAdmin)
 
 	// Unsecured routes
 	router.HandlerFunc(http.MethodGet, "/status", s.statusHandler)
@@ -32,13 +33,14 @@ func (s *server) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/cv", s.controllers.user.GetCV)
 	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id", s.controllers.user.Update)
 	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id/photo", s.controllers.user.UpdatePhoto)
-	router.HandlerFunc(http.MethodPost, "/api/v1/users/:id/cv", s.controllers.user.UpdateCV)
+	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id/cv", s.controllers.user.UpdateCV)
 	router.HandlerFunc(http.MethodDelete, "/api/v1/users/:id", s.controllers.user.Delete)
 
 	// ...
 
 	// Secured routes
-	router.GET("/v1/assets", s.wrap(secure.ThenFunc(s.controllers.asset.GetAll)))
+	router.GET("/api/v1/users/:id/exampleSecuredUserOrAdmin", s.wrap(secureUser.ThenFunc(s.controllers.user.GetSecuredUser)))
+	router.GET("/api/v1/users/:id/exampleSecuredOnlyAdmin", s.wrap(secureAdmin.ThenFunc(s.controllers.user.GetSecuredAdmin)))
 	// router.POST("/v1/create-payment-intent", s.wrap(secure.ThenFunc(s.createPaymentIntent)))
 	// router.POST("/v1/confirm-payment", s.wrap(secure.ThenFunc(s.confirmPayment)))
 	// ...

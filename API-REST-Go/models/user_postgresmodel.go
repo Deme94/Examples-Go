@@ -18,6 +18,7 @@ type User struct {
 	CreatedAt          time.Time `json:"created_at"`
 	LastLogin          time.Time `json:"last_login"`
 	LastPasswordChange time.Time `json:"last_password_change"`
+	Role               string    `json:"role"`
 }
 
 // DB MODEL ****************************************************************
@@ -31,7 +32,9 @@ func NewUserModel(db *buildsqlx.DB) *UserModel {
 
 // DB QUERIES -----------------------------------------------------------
 func (m *UserModel) GetAll() ([]*User, error) {
-	res, err := m.Db.Table("users").Select("id", "name", "email", "created_at", "last_login", "last_password_change").Get()
+	res, err := m.Db.Table("users").Select("users.id", "name", "email", "created_at", "last_login", "last_password_change", "role").
+		LeftJoin("roles", "users.role_id", "=", "roles.id").
+		Get()
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +58,7 @@ func (m *UserModel) GetAll() ([]*User, error) {
 			CreatedAt:          r["created_at"].(time.Time),
 			LastLogin:          lastLogin,
 			LastPasswordChange: r["last_password_change"].(time.Time),
+			Role:               r["role"].(string),
 		}
 
 		usrs = append(usrs, &u)
@@ -63,7 +67,10 @@ func (m *UserModel) GetAll() ([]*User, error) {
 	return usrs, nil
 }
 func (m *UserModel) Get(id int) (*User, error) {
-	res, err := m.Db.Table("users").Select("name", "email", "created_at", "last_login", "last_password_change").Where("id", "=", id).Get()
+	res, err := m.Db.Table("users").Select("name", "email", "created_at", "last_login", "last_password_change", "role").
+		Where("users.id", "=", id).
+		LeftJoin("roles", "users.role_id", "=", "roles.id").
+		Get()
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +94,7 @@ func (m *UserModel) Get(id int) (*User, error) {
 		CreatedAt:          r["created_at"].(time.Time),
 		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
+		Role:               r["role"].(string),
 	}
 
 	return &u, nil
@@ -122,6 +130,35 @@ func (m *UserModel) GetByEmailWithPassword(email string) (*User, error) {
 
 	return &u, nil
 }
+func (m *UserModel) GetByNameWithPassword(name string) (*User, error) {
+	res, err := m.Db.Table("users").Select("id", "email", "password", "created_at", "last_login", "last_password_change").Where("name", "=", name).Get()
+	if err != nil {
+		return nil, err
+	}
+	if len(res) == 0 {
+		return nil, errors.New("user not found")
+	}
+	r := res[0]
+
+	// Atributes can be nil
+	lastLogin := time.Time{}
+	ll := r["last_login"]
+	if ll != nil {
+		lastLogin = ll.(time.Time)
+	}
+
+	u := User{
+		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+		Name:               name,
+		Email:              r["email"].(string),
+		Password:           r["password"].(string),
+		CreatedAt:          r["created_at"].(time.Time),
+		LastLogin:          lastLogin,
+		LastPasswordChange: r["last_password_change"].(time.Time),
+	}
+
+	return &u, nil
+}
 func (m *UserModel) GetPhoto(id int) (string, error) {
 	res, err := m.Db.Table("users").Select("photo_name").Where("id", "=", id).Get()
 	if err != nil {
@@ -143,6 +180,17 @@ func (m *UserModel) GetCV(id int) (string, error) {
 	}
 
 	return res[0]["cv_name"].(string), nil
+}
+func (m *UserModel) GetRole(id int) (string, error) {
+	res, err := m.Db.Table("users").Select("role").Where("users.id", "=", id).LeftJoin("roles", "users.role_id", "=", "roles.id").Get() // hay que hacer join
+	if err != nil {
+		return "", err
+	}
+	if len(res) == 0 {
+		return "", errors.New("user not found")
+	}
+
+	return res[0]["role"].(string), nil
 }
 func (m *UserModel) Insert(u *User) error {
 	email := strings.ToLower(u.Email)
