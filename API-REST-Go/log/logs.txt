@@ -1,0 +1,8 @@
+2022/09/27 10:26:04 main.go:68: Started server on port 4000
+2022/09/27 10:40:59 main.go:68: Started server on port 4000
+2022/09/27 10:41:54 user-controller.go:117: invalid id parameter
+2022/09/27 11:03:40 main.go:68: Started server on port 4000
+2022/09/27 11:04:31 main.go:68: Started server on port 4000
+2022/09/27 11:05:06 main.go:68: Started server on port 4000
+2022/09/27 11:06:55 main.go:68: Started server on port 4000
+2022/09/27 11:08:39 main.go:68: Started server on port 4000

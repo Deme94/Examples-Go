@@ -101,7 +101,18 @@ type okResponse struct {
 
 // API HANDLERS ---------------------------------------------------------------
 func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
-	usrs, err := c.model.GetAll()
+
+	var usrs []*m.User
+	var err error
+
+	// if query parameters
+	y := r.URL.Query().Get("year")
+	if len(y) != 0 {
+		usrs, err = c.model.GetAllByYear(y)
+	} else {
+		usrs, err = c.model.GetAll()
+
+	}
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return

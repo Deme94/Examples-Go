@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -39,7 +40,46 @@ func (m *UserModel) GetAll() ([]*User, error) {
 		return nil, err
 	}
 	if len(res) == 0 {
-		return nil, errors.New("model users is empty")
+		return nil, errors.New("users not found")
+	}
+
+	var usrs []*User
+	for _, r := range res {
+		// Atributes can be nil
+		lastLogin := time.Time{}
+		ll := r["last_login"]
+		if ll != nil {
+			lastLogin = ll.(time.Time)
+		}
+
+		u := User{
+			ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+			Name:               r["name"].(string),
+			Email:              r["email"].(string),
+			CreatedAt:          r["created_at"].(time.Time),
+			LastLogin:          lastLogin,
+			LastPasswordChange: r["last_password_change"].(time.Time),
+			Role:               r["role"].(string),
+		}
+
+		usrs = append(usrs, &u)
+	}
+
+	return usrs, nil
+}
+func (m *UserModel) GetAllByYear(year string) ([]*User, error) {
+	startDate := fmt.Sprint(year, "-01-01")
+	endDate := fmt.Sprint(year, "-12-31")
+	res, err := m.Db.Table("users").Select("users.id", "name", "email", "created_at", "last_login", "last_password_change", "role").
+		LeftJoin("roles", "users.role_id", "=", "roles.id").
+		Where("created_at", ">=", startDate).
+		AndWhere("created_at", "<=", endDate).
+		Get()
+	if err != nil {
+		return nil, err
+	}
+	if len(res) == 0 {
+		return nil, errors.New("users not found for given year")
 	}
 
 	var usrs []*User
