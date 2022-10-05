@@ -12,8 +12,8 @@ type controllers struct {
 
 func (s *server) createControllers(dbs *databases) *controllers {
 	return &controllers{
-		user: c.NewUserController(dbs.postgresql, s.logger, secret, domain),
-		//asset: &c.AssetController{ /*dbs.mongodb*/ },
+		user:  c.NewUserController(dbs.postgresql, s.logger, secret, domain),
+		asset: c.NewAssetController(dbs.mongodb.Collection("assets"), s.logger),
 		// ...
 	}
 }
