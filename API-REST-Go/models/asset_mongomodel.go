@@ -27,11 +27,31 @@ func NewAssetModel(coll *mongo.Collection) *AssetModel {
 }
 
 // DB QUERIES ---------------------------------------------------------------
-func (a *AssetModel) GetAll(daterange ...time.Time) ([]*Asset, error) {
-	return nil, nil
+func (a *AssetModel) GetAll(daterange time.Time) ([]*Asset, error) {
+	var assets []*Asset
+	r, err := a.Coll.Find(context.TODO(),
+		bson.D{
+			{"date", bson.D{{"$gt", "date"}}},
+		},
+	)
+	// err := r.Decode(asset)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	return assets, nil
 }
 func (a *AssetModel) Get(id int) (*Asset, error) {
-	return nil, nil
+	var asset *Asset
+	r := a.Coll.FindOne(context.TODO(),
+		bson.D{
+			{"id", id},
+		},
+	)
+	err := r.Decode(asset)
+	if err != nil {
+		return nil, err
+	}
+	return asset, nil
 }
 func (a *AssetModel) Insert(asset *Asset) error {
 	_, err := a.Coll.InsertOne(context.TODO(),
