@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -38,10 +39,48 @@ type assetRequest struct {
 
 // API HANDLERS ---------------------------------------------------------------
 func (c *AssetController) GetAll(w http.ResponseWriter, r *http.Request) {
+	var fromDate time.Time
+	var toDate time.Time
 
+	// if query parameters
+	fromDateString := r.URL.Query().Get("fromDate")
+	toDateString := r.URL.Query().Get("toDate")
+	if len(fromDateString) != 0 {
+		from, err := time.Parse("2006-01-02", fromDateString)
+		if err != nil {
+			util.ErrorJSON(w, err)
+			return
+		}
+		fromDate = from
+	}
+	if len(toDateString) != 0 {
+		to, err := time.Parse("2006-01-02", toDateString)
+		if err != nil {
+			util.ErrorJSON(w, err)
+			return
+		}
+		toDate = to
+	}
+	assets, err := c.model.GetAll(fromDate, toDate)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, assets, "assets")
 }
 func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
 
+	id := params.ByName("id")
+
+	a, err := c.model.Get(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, a, "asset")
 }
 func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 	var req assetRequest
