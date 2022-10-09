@@ -48,6 +48,7 @@ func (a *AssetModel) Update(asset *Asset) error {
 	return nil
 }
 func (a *AssetModel) Delete(id int) error {
+	// OLA
 	return nil
 }
 
