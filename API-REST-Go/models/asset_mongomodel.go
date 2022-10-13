@@ -95,16 +95,40 @@ func (m *AssetModel) Insert(asset *Asset) error {
 			{"name", asset.Name},
 			{"date", asset.Date},
 			{"created_at", time.Now()},
-			{"updated_at", time.Now()},
 		},
 	)
 	return err
 }
 func (m *AssetModel) Update(asset *Asset) error {
-	return nil
+	_, err := m.Coll.UpdateOne(
+		context.TODO(),
+		bson.D{
+			{"_id", asset.ID},
+		},
+		bson.D{
+			{"$set", bson.D{
+				{"name", asset.Name},
+				{"date", asset.Date},
+				{"updated_at", time.Now()},
+			}},
+		},
+	)
+
+	return err
 }
-func (m *AssetModel) Delete(id int) error {
-	return nil
+func (m *AssetModel) Delete(id string) error {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = m.Coll.DeleteOne(
+		context.TODO(),
+		bson.D{
+			{"_id", objID},
+		},
+	)
+
+	return err
 }
 
 // ...

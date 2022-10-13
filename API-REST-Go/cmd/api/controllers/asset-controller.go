@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -106,10 +107,50 @@ func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, "asset inserted successfully", "response")
 }
 func (c *AssetController) Update(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id := params.ByName("id")
 
+	var req assetRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	var a m.Asset
+	a.ID, err = primitive.ObjectIDFromHex(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+	a.Name = req.Name
+	a.Date = date
+
+	err = c.model.Update(&a)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, "asset updated successfully", "response")
 }
 func (c *AssetController) Delete(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id := params.ByName("id")
 
+	err := c.model.Delete(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, "asset deleted successfully", "response")
 }
 
 // ...

@@ -39,6 +39,8 @@ func (s *server) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/api/v1/assets", s.controllers.asset.GetAll)
 	router.HandlerFunc(http.MethodGet, "/api/v1/assets/:id", s.controllers.asset.Get)
 	router.HandlerFunc(http.MethodPost, "/api/v1/assets", s.controllers.asset.Insert)
+	router.HandlerFunc(http.MethodPut, "/api/v1/assets/:id", s.controllers.asset.Update)
+	router.HandlerFunc(http.MethodDelete, "/api/v1/assets/:id", s.controllers.asset.Delete)
 
 	// ...
 
