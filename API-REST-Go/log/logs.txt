@@ -1,4 +1,0 @@
-2022/10/13 11:44:52 main.go:68: Started server on port 4000
-2022/10/13 11:45:42 main.go:68: Started server on port 4000
-2022/10/13 11:46:02 main.go:68: Started server on port 4000
-2022/10/13 11:52:12 main.go:68: Started server on port 4000
