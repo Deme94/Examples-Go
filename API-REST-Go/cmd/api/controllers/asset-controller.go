@@ -4,6 +4,7 @@ import (
 	util "API-REST/cmd/api/utilities"
 	m "API-REST/models"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -84,27 +85,40 @@ func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, a, "asset")
 }
 func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
-	var req assetRequest
+	var req []assetRequest
+	var assets []*m.Asset
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		util.ErrorJSON(w, err)
+		fmt.Println("errrooor")
 		return
 	}
 
-	date, err := time.Parse("2006-01-02", req.Date)
-	if err != nil {
-		util.ErrorJSON(w, err)
-		return
+	for _, a := range req {
+		date, err := time.Parse("2006-01-02", a.Date)
+		if err != nil {
+			util.ErrorJSON(w, err)
+			return
+		}
+		assets = append(assets, &m.Asset{Name: a.Name, Date: date})
 	}
 
-	err = c.model.Insert(&m.Asset{Name: req.Name, Date: date})
-	if err != nil {
-		util.ErrorJSON(w, err)
-		return
+	if len(assets) == 1 {
+		err = c.model.Insert(assets[0])
+		if err != nil {
+			util.ErrorJSON(w, err)
+			return
+		}
+	} else {
+		err = c.model.InsertMany(assets)
+		if err != nil {
+			util.ErrorJSON(w, err)
+			return
+		}
 	}
 
-	util.WriteJSON(w, http.StatusOK, "asset inserted successfully", "response")
+	util.WriteJSON(w, http.StatusOK, "assets inserted successfully", "response")
 }
 func (c *AssetController) Update(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())

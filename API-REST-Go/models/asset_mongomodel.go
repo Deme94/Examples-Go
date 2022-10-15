@@ -99,6 +99,19 @@ func (m *AssetModel) Insert(asset *Asset) error {
 	)
 	return err
 }
+func (m *AssetModel) InsertMany(assets []*Asset) error {
+	var documents []interface{}
+	for _, a := range assets {
+		documents = append(documents,
+			bson.D{
+				{"name", a.Name},
+				{"date", a.Date},
+				{"created_at", time.Now()},
+			})
+	}
+	_, err := m.Coll.InsertMany(context.TODO(), documents)
+	return err
+}
 func (m *AssetModel) Update(asset *Asset) error {
 	_, err := m.Coll.UpdateOne(
 		context.TODO(),
