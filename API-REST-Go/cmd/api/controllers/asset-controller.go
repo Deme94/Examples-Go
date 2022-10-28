@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -29,6 +30,31 @@ func NewAssetController(coll *mongo.Collection, logger *log.Logger) *AssetContro
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
+func (c *AssetController) getDates(query url.Values) (time.Time, time.Time, error) {
+	var fromDate time.Time
+	var toDate time.Time
+
+	// if query parameters
+	fromDateString := query.Get("fromDate")
+	toDateString := query.Get("toDate")
+	if len(fromDateString) != 0 {
+		from, err := time.Parse("2006-01-02", fromDateString)
+		if err != nil {
+			return fromDate, toDate, err
+		}
+		fromDate = from
+	}
+	if len(toDateString) != 0 {
+		to, err := time.Parse("2006-01-02", toDateString)
+		if err != nil {
+			return fromDate, toDate, err
+		}
+		toDate = to
+	}
+
+	return fromDate, toDate, nil
+}
+
 // ...
 
 // PAYLOADS (json input) ----------------------------------------------------------------
@@ -41,28 +67,12 @@ type assetRequest struct {
 
 // API HANDLERS ---------------------------------------------------------------
 func (c *AssetController) GetAll(w http.ResponseWriter, r *http.Request) {
-	var fromDate time.Time
-	var toDate time.Time
+	fromDate, toDate, err := c.getDates(r.URL.Query())
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
 
-	// if query parameters
-	fromDateString := r.URL.Query().Get("fromDate")
-	toDateString := r.URL.Query().Get("toDate")
-	if len(fromDateString) != 0 {
-		from, err := time.Parse("2006-01-02", fromDateString)
-		if err != nil {
-			util.ErrorJSON(w, err)
-			return
-		}
-		fromDate = from
-	}
-	if len(toDateString) != 0 {
-		to, err := time.Parse("2006-01-02", toDateString)
-		if err != nil {
-			util.ErrorJSON(w, err)
-			return
-		}
-		toDate = to
-	}
 	assets, err := c.model.GetAll(fromDate, toDate)
 	if err != nil {
 		util.ErrorJSON(w, err)
@@ -83,6 +93,21 @@ func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSON(w, http.StatusOK, a, "asset")
+}
+func (c *AssetController) GetNames(w http.ResponseWriter, r *http.Request) {
+	fromDate, toDate, err := c.getDates(r.URL.Query())
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	assets, err := c.model.GetNames(fromDate, toDate)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, assets, "assets")
 }
 func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 	var req []assetRequest

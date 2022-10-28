@@ -9,6 +9,7 @@ import (
 	"github.com/arthurkushman/buildsqlx"
 )
 
+// MAIN STRUCT
 type User struct {
 	ID                 int       `json:"id"`
 	Name               string    `json:"name"`
@@ -20,7 +21,11 @@ type User struct {
 	LastLogin          time.Time `json:"last_login"`
 	LastPasswordChange time.Time `json:"last_password_change"`
 	Role               string    `json:"role"`
+	// ...
 }
+
+// other structs
+// ...
 
 // DB MODEL ****************************************************************
 type UserModel struct {

@@ -9,8 +9,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// MAIN STRUCT
 type Asset struct {
 	ID        primitive.ObjectID `bson:"_id, omitempty"`
 	Name      string             `json:"name"`
@@ -19,6 +21,13 @@ type Asset struct {
 	UpdatedAt time.Time          `json:"updated_at"`
 	// ...
 }
+
+// other structs
+type assetName struct {
+	Name string `json:"name"`
+}
+
+// ...
 
 // DB COLLECTION ***************************************************************
 type AssetModel struct {
@@ -89,6 +98,52 @@ func (m *AssetModel) Get(id string) (*Asset, error) {
 	}
 	return &asset, nil
 }
+func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*assetName, error) {
+	filter := bson.D{}
+	filterDate := bson.D{}
+
+	if !fromDate.IsZero() {
+		filterDate = append(filterDate, bson.E{"$gt", fromDate})
+		filter = bson.D{{"date", filterDate}}
+	}
+	if !toDate.IsZero() {
+		filterDate = append(filterDate, bson.E{"$lt", toDate})
+		filter = bson.D{{"date", filterDate}}
+	}
+
+	var assets []*assetName
+	projection := bson.D{
+		{"name", 1}, // select name field
+		{"_id", 0},  // remove _id field from selection (it is always returned by default)
+	}
+	cur, err := m.Coll.Find(context.TODO(),
+		filter,
+		options.Find().SetProjection(projection),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for cur.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var asset assetName
+		err := cur.Decode(&asset)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		assets = append(assets, &asset)
+
+	}
+	//Close the cursor once finished
+	cur.Close(context.TODO())
+
+	if len(assets) == 0 {
+		return nil, errors.New("no assets found")
+	}
+
+	return assets, nil
+}
 func (m *AssetModel) Insert(asset *Asset) error {
 	_, err := m.Coll.InsertOne(context.TODO(),
 		bson.D{
@@ -143,9 +198,5 @@ func (m *AssetModel) Delete(id string) error {
 
 	return err
 }
-
-// ...
-
-// PAYLOADS (json input) ---------------------------------------------------------------
 
 // ...
