@@ -43,6 +43,12 @@ func (s *server) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/api/v1/assets/:id", s.controllers.asset.Update)
 	router.HandlerFunc(http.MethodDelete, "/api/v1/assets/:id", s.controllers.asset.Delete)
 
+	router.HandlerFunc(http.MethodGet, "/api/v1/attributes", s.controllers.attribute.GetAll)
+	router.HandlerFunc(http.MethodGet, "/api/v1/attributes/:id", s.controllers.attribute.Get)
+	router.HandlerFunc(http.MethodPost, "/api/v1/attributes", s.controllers.attribute.Insert)
+	router.HandlerFunc(http.MethodPut, "/api/v1/attributes/:id", s.controllers.attribute.Update)
+	router.HandlerFunc(http.MethodDelete, "/api/v1/attributes/:id", s.controllers.attribute.Delete)
+
 	// ...
 
 	// Secured routes

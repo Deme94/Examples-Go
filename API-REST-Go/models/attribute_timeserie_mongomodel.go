@@ -14,11 +14,15 @@ import (
 // MAIN STRUCT
 type Attribute struct {
 	ID        primitive.ObjectID `bson:"_id, omitempty"`
-	AssetName string             `json:"asset_name"`
-	Name      string             `json:"name"`
-	Label     string             `json:"label"`
-	Timestamp time.Time          `json:"timestamp"`
-	Value     float64            `json:"value"`
+	Metadata  AttributeMetadata  `bson:"metadata"`
+	Timestamp time.Time          `bson:"timestamp"`
+	Value     float64            `bson:"value"`
+}
+type AttributeMetadata struct {
+	AssetName string `bson:"asset_name"`
+	Name      string `bson:"name"`
+	Label     string `bson:"label"`
+	Unit      string `bson:"unit"`
 }
 
 // ...
@@ -39,19 +43,19 @@ func (m *AttributeModel) GetAll(fromDate time.Time, toDate time.Time, filterOpti
 
 	if !fromDate.IsZero() {
 		filterDate = append(filterDate, bson.E{"$gt", fromDate})
-		filter = bson.D{{"date", filterDate}}
+		filter = bson.D{{"timestamp", filterDate}}
 	}
 	if !toDate.IsZero() {
 		filterDate = append(filterDate, bson.E{"$lt", toDate})
-		filter = bson.D{{"date", filterDate}}
+		filter = bson.D{{"timestamp", filterDate}}
 	}
 
 	if len(filterOptions) != 0 {
 		if name, ok := filterOptions["name"]; ok {
-			filter = append(filter, bson.E{"name", name})
+			filter = append(filter, bson.E{"metadata.name", name})
 		}
 		if label, ok := filterOptions["label"]; ok {
-			filter = append(filter, bson.E{"label", label})
+			filter = append(filter, bson.E{"metadata.label", label})
 		}
 		// other options ...
 	}
@@ -73,13 +77,12 @@ func (m *AttributeModel) GetAll(fromDate time.Time, toDate time.Time, filterOpti
 		}
 
 		atts = append(atts, &att)
-
 	}
 	//Close the cursor once finished
 	cur.Close(context.TODO())
 
 	if len(atts) == 0 {
-		return nil, errors.New("no atts found")
+		return nil, errors.New("no attributes found")
 	}
 
 	return atts, nil
@@ -103,47 +106,57 @@ func (m *AttributeModel) Get(id string) (*Attribute, error) {
 	return &att, nil
 }
 func (m *AttributeModel) Insert(attribute *Attribute) error {
-	// _, err := m.Coll.InsertOne(context.TODO(),
-	// 	bson.D{
-	// 		{"name", attribute.Name},
-	// 		{"date", attribute.Date},
-	// 		{"created_at", time.Now()},
-	// 	},
-	// )
-	// return err
-	return nil
+	_, err := m.Coll.InsertOne(context.TODO(),
+		bson.D{
+			{"metadata", bson.D{
+				{"asset_name", attribute.Metadata.AssetName},
+				{"name", attribute.Metadata.Name},
+				{"label", attribute.Metadata.Label},
+				{"unit", attribute.Metadata.Unit},
+			}},
+			{"timestamp", attribute.Timestamp},
+			{"value", attribute.Value},
+		},
+	)
+	return err
 }
 func (m *AttributeModel) InsertMany(attributes []*Attribute) error {
-	// var documents []interface{}
-	// for _, att := range attributes {
-	// 	documents = append(documents,
-	// 		bson.D{
-	// 			{"name", att.Name},
-	// 			{"date", att.Date},
-	// 			{"created_at", time.Now()},
-	// 		})
-	// }
-	// _, err := m.Coll.InsertMany(context.TODO(), documents)
-	// return err
-	return nil
+	var documents []interface{}
+	for _, att := range attributes {
+		documents = append(documents,
+			bson.D{
+				{"metadata", bson.D{
+					{"asset_name", att.Metadata.AssetName},
+					{"name", att.Metadata.Name},
+					{"label", att.Metadata.Label},
+					{"unit", att.Metadata.Unit},
+				}},
+				{"timestamp", att.Timestamp},
+				{"value", att.Value},
+			})
+	}
+	_, err := m.Coll.InsertMany(context.TODO(), documents)
+	return err
 }
 func (m *AttributeModel) Update(attribute *Attribute) error {
-	// _, err := m.Coll.UpdateOne(
-	// 	context.TODO(),
-	// 	bson.D{
-	// 		{"_id", asset.ID},
-	// 	},
-	// 	bson.D{
-	// 		{"$set", bson.D{
-	// 			{"name", asset.Name},
-	// 			{"date", asset.Date},
-	// 			{"updated_at", time.Now()},
-	// 		}},
-	// 	},
-	// )
+	_, err := m.Coll.UpdateOne(
+		context.TODO(),
+		bson.D{
+			{"_id", attribute.ID},
+		},
+		bson.D{
+			{"$set", bson.D{
+				{"metadata.asset_name", attribute.Metadata.AssetName},
+				{"metadata.name", attribute.Metadata.Name},
+				{"metadata.label", attribute.Metadata.Label},
+				{"metadata.unit", attribute.Metadata.Unit},
+				{"timestamp", attribute.Timestamp},
+				{"value", attribute.Value},
+			}},
+		},
+	)
 
-	// return err
-	return nil
+	return err
 }
 func (m *AttributeModel) Delete(id string) error {
 	objID, err := primitive.ObjectIDFromHex(id)

@@ -4,7 +4,6 @@ import (
 	util "API-REST/cmd/api/utilities"
 	m "API-REST/models"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -59,8 +58,8 @@ func (c *AssetController) getDateRangeFromQuery(query url.Values) (time.Time, ti
 
 // PAYLOADS (json input) ----------------------------------------------------------------
 type assetRequest struct {
-	Name string `json:"name"`
-	Date string `json:"date"`
+	Name string `bson:"name"`
+	Date string `bson:"date"`
 }
 
 // ...
@@ -123,7 +122,6 @@ func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		util.ErrorJSON(w, err)
-		fmt.Println("errrooor")
 		return
 	}
 
