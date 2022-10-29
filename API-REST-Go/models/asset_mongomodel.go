@@ -19,7 +19,7 @@ type Asset struct {
 	Date      time.Time          `json:"date"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`
-	// ...
+	// ... description, etc
 }
 
 // other structs
@@ -39,7 +39,7 @@ func NewAssetModel(coll *mongo.Collection) *AssetModel {
 }
 
 // DB QUERIES ---------------------------------------------------------------
-func (m *AssetModel) GetAll(fromDate time.Time, toDate time.Time) ([]*Asset, error) {
+func (m *AssetModel) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[string]interface{}) ([]*Asset, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}
 
@@ -50,6 +50,13 @@ func (m *AssetModel) GetAll(fromDate time.Time, toDate time.Time) ([]*Asset, err
 	if !toDate.IsZero() {
 		filterDate = append(filterDate, bson.E{"$lt", toDate})
 		filter = bson.D{{"date", filterDate}}
+	}
+
+	if len(filterOptions) != 0 {
+		if name, ok := filterOptions["name"]; ok {
+			filter = append(filter, bson.E{"name", name})
+		}
+		// other options ...
 	}
 
 	var assets []*Asset

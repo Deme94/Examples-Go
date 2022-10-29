@@ -30,7 +30,7 @@ func NewAssetController(coll *mongo.Collection, logger *log.Logger) *AssetContro
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
-func (c *AssetController) getDates(query url.Values) (time.Time, time.Time, error) {
+func (c *AssetController) getDateRangeFromQuery(query url.Values) (time.Time, time.Time, error) {
 	var fromDate time.Time
 	var toDate time.Time
 
@@ -67,13 +67,20 @@ type assetRequest struct {
 
 // API HANDLERS ---------------------------------------------------------------
 func (c *AssetController) GetAll(w http.ResponseWriter, r *http.Request) {
-	fromDate, toDate, err := c.getDates(r.URL.Query())
+	fromDate, toDate, err := c.getDateRangeFromQuery(r.URL.Query())
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	assets, err := c.model.GetAll(fromDate, toDate)
+	filterOptions := make(map[string]interface{})
+	name := r.URL.Query().Get("name")
+	if len(name) != 0 {
+		filterOptions["name"] = name
+	}
+	// other filter options...
+
+	assets, err := c.model.GetAll(fromDate, toDate, filterOptions)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -95,7 +102,7 @@ func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, a, "asset")
 }
 func (c *AssetController) GetNames(w http.ResponseWriter, r *http.Request) {
-	fromDate, toDate, err := c.getDates(r.URL.Query())
+	fromDate, toDate, err := c.getDateRangeFromQuery(r.URL.Query())
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
