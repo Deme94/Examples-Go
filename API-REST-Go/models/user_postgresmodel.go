@@ -24,9 +24,6 @@ type User struct {
 	// ...
 }
 
-// other structs
-// ...
-
 // DB MODEL ****************************************************************
 type UserModel struct {
 	Db *buildsqlx.DB

@@ -23,9 +23,6 @@ type Asset struct {
 }
 
 // other structs
-type assetName struct {
-	Name string `bson:"name"`
-}
 
 // ...
 
@@ -105,7 +102,7 @@ func (m *AssetModel) Get(id string) (*Asset, error) {
 	}
 	return &asset, nil
 }
-func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*assetName, error) {
+func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*Asset, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}
 
@@ -118,7 +115,6 @@ func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*assetNam
 		filter = bson.D{{"date", filterDate}}
 	}
 
-	var assets []*assetName
 	projection := bson.D{
 		{"name", 1}, // select name field
 		{"_id", 0},  // remove _id field from selection (it is always returned by default)
@@ -131,9 +127,10 @@ func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*assetNam
 		return nil, err
 	}
 
+	var assets []*Asset
 	for cur.Next(context.TODO()) {
 		//Create a value into which the single document can be decoded
-		var asset assetName
+		var asset Asset
 		err := cur.Decode(&asset)
 		if err != nil {
 			log.Fatal(err)

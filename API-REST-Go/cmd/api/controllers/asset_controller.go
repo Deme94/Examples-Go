@@ -56,10 +56,14 @@ func (c *AssetController) getDateRangeFromQuery(query url.Values) (time.Time, ti
 
 // ...
 
-// PAYLOADS (json input) ----------------------------------------------------------------
+// PAYLOADS (json input and output) ----------------------------------------------------------------
 type assetRequest struct {
 	Name string `bson:"name"`
 	Date string `bson:"date"`
+}
+
+type assetNameResponse struct {
+	Name string `bson:"name"`
 }
 
 // ...
@@ -113,7 +117,14 @@ func (c *AssetController) GetNames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, assets, "assets")
+	var res []assetNameResponse
+	var assetName assetNameResponse
+	for _, a := range assets {
+		assetName.Name = a.Name
+		res = append(res, assetName)
+	}
+
+	util.WriteJSON(w, http.StatusOK, res, "assets")
 }
 func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 	var req []assetRequest

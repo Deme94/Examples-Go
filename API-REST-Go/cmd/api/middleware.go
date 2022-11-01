@@ -48,33 +48,33 @@ func (s *server) checkToken(next http.Handler) http.Handler {
 		token := headerParts[1]
 		claims, err := jwt.HMACCheck([]byte(token), []byte(s.config.jwt.secret))
 		if err != nil {
-			util.ErrorJSON(w, err, http.StatusForbidden)
+			util.ErrorJSON(w, err, http.StatusUnauthorized)
 			return
 		}
 
 		if !claims.Valid(time.Now()) {
-			util.ErrorJSON(w, errors.New("unauthorized - token expired"), http.StatusForbidden)
+			util.ErrorJSON(w, errors.New("unauthorized - token expired"), http.StatusUnauthorized)
 			return
 		}
 
 		if !claims.AcceptAudience(domain) {
-			util.ErrorJSON(w, errors.New("unauthorized - invalid audience"), http.StatusForbidden)
+			util.ErrorJSON(w, errors.New("unauthorized - invalid audience"), http.StatusUnauthorized)
 			return
 		}
 
 		if claims.Issuer != domain {
-			util.ErrorJSON(w, errors.New("unauthorized - invalid issuer"), http.StatusForbidden)
+			util.ErrorJSON(w, errors.New("unauthorized - invalid issuer"), http.StatusUnauthorized)
 			return
 		}
 
 		claimerId, err := strconv.Atoi(claims.Subject)
 		if err != nil {
-			util.ErrorJSON(w, errors.New("unauthorized - invalid claimer"), http.StatusForbidden)
+			util.ErrorJSON(w, errors.New("unauthorized - invalid claimer"), http.StatusUnauthorized)
 			return
 		}
 		claimerRole, err := s.controllers.user.CheckRole(claimerId)
 		if err != nil {
-			util.ErrorJSON(w, errors.New("unauthorized - invalid claimer"), http.StatusForbidden)
+			util.ErrorJSON(w, errors.New("forbidden - invalid claimer"), http.StatusForbidden)
 			return
 		}
 

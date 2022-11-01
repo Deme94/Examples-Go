@@ -56,7 +56,7 @@ func (c *AttributeController) getDateRangeFromQuery(query url.Values) (time.Time
 
 // ...
 
-// PAYLOADS (json input) ----------------------------------------------------------------
+// PAYLOADS (json input and output) ----------------------------------------------------------------
 type attributeRequest struct {
 	AssetName string  `bson:"asset_name"`
 	Name      string  `bson:"name"`
