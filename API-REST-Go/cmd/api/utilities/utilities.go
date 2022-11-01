@@ -15,11 +15,17 @@ func WriteJSON(w http.ResponseWriter, status int, data interface{}, wrap string)
 		return err
 	}
 
-	w.Header().Set("Content-Type", "server/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	w.Write(js)
 
 	return nil
+}
+
+// swagger:response errorResponse
+type errorResponse struct {
+	// error message
+	Message string `json:"message"`
 }
 
 func ErrorJSON(w http.ResponseWriter, err error, status ...int) {
@@ -28,11 +34,7 @@ func ErrorJSON(w http.ResponseWriter, err error, status ...int) {
 		statusCode = status[0]
 	}
 
-	type jsonError struct {
-		Message string `json:"message"`
-	}
-
-	theError := jsonError{
+	theError := errorResponse{
 		Message: err.Error(),
 	}
 

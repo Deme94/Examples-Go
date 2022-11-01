@@ -70,7 +70,7 @@ func (c *UserController) CheckRole(id int) (string, error) {
 
 // ...
 
-// PAYLOADS (json input) ----------------------------------------------------------------
+// PAYLOADS (json input and output) ----------------------------------------------------------------
 type userRequest struct {
 	Name        string `json:"name"`
 	Email       string `json:"email"`
@@ -86,6 +86,12 @@ type loginRequest struct {
 
 type photoRequest struct {
 	PhotoBase64 string `json:"photo_base64"`
+}
+
+// swagger:response usersResponse
+type usersResponse struct {
+	// user list
+	Users []*m.User `json:"users"`
 }
 
 type loginResponse struct {
@@ -118,7 +124,7 @@ func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, usrs, "users")
+	util.WriteJSON(w, http.StatusOK, usersResponse{usrs}, "users")
 }
 func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())

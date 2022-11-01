@@ -10,6 +10,7 @@ import (
 )
 
 // MAIN STRUCT
+// swagger:model user
 type User struct {
 	ID                 int       `json:"id"`
 	Name               string    `json:"name"`

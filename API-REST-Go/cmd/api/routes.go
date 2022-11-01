@@ -19,6 +19,7 @@ func (s *server) wrap(next http.Handler) httprouter.Handle {
 
 func (s *server) routes() http.Handler {
 	router := httprouter.New()
+
 	secureUser := alice.New(s.checkToken)
 	secureAdmin := alice.New(s.checkToken, s.checkAdmin)
 
@@ -26,6 +27,32 @@ func (s *server) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/status", s.statusHandler)
 
 	router.HandlerFunc(http.MethodPost, "/api/v1/login", s.controllers.user.Login)
+	// swagger:route GET /users users
+	//
+	// Lists users filtered by some parameters.
+	//
+	// This will show all available users by default.
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Schemes: http
+	//
+	//     Parameters:
+	//       + name: year
+	//         in: query
+	//         description: year the user was created
+	//         required: false
+	//         type: integer
+	//         format: int32
+	//
+	//
+	//     Responses:
+	//       200: usersResponse
+	//     		description: users response
+	//     		schema:
+	//       		type: array
+	//       400: errorResponse
 	router.HandlerFunc(http.MethodPost, "/api/v1/users", s.controllers.user.Insert)
 	router.HandlerFunc(http.MethodGet, "/api/v1/users", s.controllers.user.GetAll)
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id", s.controllers.user.Get)
