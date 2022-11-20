@@ -14,11 +14,12 @@ import (
 
 // MAIN STRUCT
 type Asset struct {
-	ID        primitive.ObjectID `bson:"_id, omitempty"`
-	Name      string             `bson:"name"`
-	Date      time.Time          `bson:"date"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
+	ID         primitive.ObjectID `bson:"_id, omitempty"`
+	Name       string             `bson:"name"`
+	Date       time.Time          `bson:"date"`
+	CreatedAt  time.Time          `bson:"created_at"`
+	UpdatedAt  time.Time          `bson:"updated_at"`
+	Attributes []*Attribute       `bson:"attributes"`
 	// ... description, etc
 }
 
@@ -29,10 +30,11 @@ type Asset struct {
 // DB COLLECTION ***************************************************************
 type AssetModel struct {
 	Coll *mongo.Collection
+	Db   *mongo.Database
 }
 
-func NewAssetModel(coll *mongo.Collection) *AssetModel {
-	return &AssetModel{coll}
+func NewAssetModel(coll *mongo.Collection, db *mongo.Database) *AssetModel {
+	return &AssetModel{coll, db}
 }
 
 // DB QUERIES ---------------------------------------------------------------
@@ -102,6 +104,54 @@ func (m *AssetModel) Get(id string) (*Asset, error) {
 	}
 	return &asset, nil
 }
+
+// Lookup (join) example
+func (m *AssetModel) GetWithAttributes(id string) (*Asset, error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	query := []bson.M{
+		{
+			"$match": bson.M{
+				"_id": objID,
+			},
+		},
+		//{"$project": bson.M{"_id": 0, "name": 1}}, // Projection example in aggregate
+		{
+			"$lookup": bson.M{
+				"from":         "attributes",
+				"localField":   "name",
+				"foreignField": "metadata.asset_name",
+				// "pipeline": []bson.M{  // Pipeline example in lookup (match, project... for second collection)
+				// 	{
+				// 		"$project": bson.M{"_id": 0, "metadata.name": 1},
+				// 	},
+				// },
+				"as": "attributes",
+			},
+		},
+	}
+
+	cur, err := m.Coll.Aggregate(context.TODO(), query)
+	if err != nil {
+		return nil, err
+	}
+
+	var asset Asset
+	for cur.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		err := cur.Decode(&asset)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return &asset, nil
+}
+
+// Projection example
 func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*Asset, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}

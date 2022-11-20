@@ -30,10 +30,11 @@ type AttributeMetadata struct {
 // DB COLLECTION ***************************************************************
 type AttributeModel struct {
 	Coll *mongo.Collection
+	Db   *mongo.Database
 }
 
-func NewAttributeModel(coll *mongo.Collection) *AttributeModel {
-	return &AttributeModel{coll}
+func NewAttributeModel(coll *mongo.Collection, db *mongo.Database) *AttributeModel {
+	return &AttributeModel{coll, db}
 }
 
 // DB QUERIES ---------------------------------------------------------------

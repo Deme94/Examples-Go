@@ -20,9 +20,9 @@ type AttributeController struct {
 	logger *log.Logger
 }
 
-func NewAttributeController(coll *mongo.Collection, logger *log.Logger) *AttributeController {
+func NewAttributeController(coll *mongo.Collection, db *mongo.Database, logger *log.Logger) *AttributeController {
 	c := AttributeController{}
-	c.model = &m.AttributeModel{Coll: coll}
+	c.model = &m.AttributeModel{Coll: coll, Db: db}
 	c.logger = logger
 
 	return &c
@@ -58,12 +58,12 @@ func (c *AttributeController) getDateRangeFromQuery(query url.Values) (time.Time
 
 // PAYLOADS (json input and output) ----------------------------------------------------------------
 type attributeRequest struct {
-	AssetName string  `bson:"asset_name"`
-	Name      string  `bson:"name"`
-	Label     string  `bson:"label"`
-	Unit      string  `bson:"unit"`
-	Timestamp string  `bson:"timestamp"`
-	Value     float64 `bson:"value"`
+	AssetName string  `json:"asset_name"`
+	Name      string  `json:"name"`
+	Label     string  `json:"label"`
+	Unit      string  `json:"unit"`
+	Timestamp string  `json:"timestamp"`
+	Value     float64 `json:"value"`
 }
 
 // ...

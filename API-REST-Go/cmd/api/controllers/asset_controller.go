@@ -20,9 +20,9 @@ type AssetController struct {
 	logger *log.Logger
 }
 
-func NewAssetController(coll *mongo.Collection, logger *log.Logger) *AssetController {
+func NewAssetController(coll *mongo.Collection, db *mongo.Database, logger *log.Logger) *AssetController {
 	c := AssetController{}
-	c.model = &m.AssetModel{Coll: coll}
+	c.model = &m.AssetModel{Coll: coll, Db: db}
 	c.logger = logger
 
 	return &c
@@ -58,8 +58,8 @@ func (c *AssetController) getDateRangeFromQuery(query url.Values) (time.Time, ti
 
 // PAYLOADS (json input and output) ----------------------------------------------------------------
 type assetRequest struct {
-	Name string `bson:"name"`
-	Date string `bson:"date"`
+	Name string `json:"name"`
+	Date string `json:"date"`
 }
 
 type assetNameResponse struct {
@@ -97,6 +97,19 @@ func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
 	id := params.ByName("id")
 
 	a, err := c.model.Get(id)
+	if err != nil {
+		util.ErrorJSON(w, err)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, a, "asset")
+}
+func (c *AssetController) GetWithAttributes(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+
+	id := params.ByName("id")
+
+	a, err := c.model.GetWithAttributes(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return

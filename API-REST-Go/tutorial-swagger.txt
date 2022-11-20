@@ -10,7 +10,7 @@
 6. Este spec ya se puede usar en el editor oficial de swagger y ver si funciona sin errores https://editor.swagger.io/
 
 Para tener una UI propia de swagger en nuestro servidor:
-    Nada, mejor subirlo a swagger-hub
+    Revisar Swagger-UI
 
 Tener UI swagger en la nube: 
     - Investigar cuenta free: https://swagger.io/tools/swaggerhub/pricing/

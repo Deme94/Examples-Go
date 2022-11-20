@@ -65,6 +65,7 @@ func (s *server) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/api/v1/assets", s.controllers.asset.GetAll)
 	router.HandlerFunc(http.MethodGet, "/api/v1/assets/:id", s.controllers.asset.Get)
+	router.HandlerFunc(http.MethodGet, "/api/v1/assets/:id/attributes", s.controllers.asset.GetWithAttributes)
 	router.HandlerFunc(http.MethodGet, "/api/v1/assets-names", s.controllers.asset.GetNames)
 	router.HandlerFunc(http.MethodPost, "/api/v1/assets", s.controllers.asset.Insert)
 	router.HandlerFunc(http.MethodPut, "/api/v1/assets/:id", s.controllers.asset.Update)
