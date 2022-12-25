@@ -1,3 +1,6 @@
+# API
+apiBasePath: "/api/v1"
+maxMultiPartMemory: 1048576 # bytes (1024 * 1024)
 # Logger
 logDir: "./logs"
 logFileName: "log"

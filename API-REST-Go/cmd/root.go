@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 
 		// API-Gateway
 		log.Println("Loading api-gateway...")
-		err = api.Setup()
+		err = api.Start()
 		if err != nil {
 			log.Fatal("\033[31m"+"API-GATEWAY FAILED"+"\033[0m"+" -> ", err)
 		}

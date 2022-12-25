@@ -3,18 +3,18 @@ package user
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
 
@@ -76,6 +76,10 @@ type photoRequest struct {
 	PhotoBase64 string `json:"photo_base64"`
 }
 
+type fileRequest struct {
+	File *multipart.FileHeader `form:"file" binding:"required"`
+}
+
 type usersResponse struct {
 	Users []*user.User `json:"users"`
 }
@@ -92,13 +96,13 @@ type okResponse struct {
 // ...
 
 // API HANDLERS ---------------------------------------------------------------
-func (c *Controller) GetAll(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetAll(ctx *gin.Context) {
 
 	var usrs []*user.User
 	var err error
 
 	// if query parameters
-	y := r.URL.Query().Get("year")
+	y := ctx.Query("year")
 	if len(y) != 0 {
 		usrs, err = c.Model.GetAllByYear(y)
 	} else {
@@ -106,57 +110,53 @@ func (c *Controller) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	}
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, usersResponse{usrs}, "users")
+	util.WriteJSON(ctx, http.StatusOK, usersResponse{usrs}, "users")
 }
-func (c *Controller) Get(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) Get(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	u, err := c.Model.Get(id)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, u, "user")
+	util.WriteJSON(ctx, http.StatusOK, u, "user")
 }
-func (c *Controller) GetPhoto(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) GetPhoto(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	imageName, err := c.Model.GetPhoto(id)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	// Get webp file
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_RDWR, 0644)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 	defer f.Close()
 	// Decode webp file to image
 	image, err := webp.Decode(f, &decoder.Options{})
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 	// Encode image into buffer
@@ -169,115 +169,106 @@ func (c *Controller) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	// Get bytes and encode to base64
 	imageBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	util.WriteJSON(w, http.StatusOK, imageBase64, "photo")
+	util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
 }
-func (c *Controller) GetCV(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) GetCV(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	cvName, err := c.Model.GetCV(id)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	filePath := "./storage/users/" + cvName + ".pdf"
-	http.ServeFile(w, r, filePath)
+	ctx.File(filePath)
 }
 
 // Example secured route with different behaviour for role user and role admin
-func (c *Controller) GetSecuredUser(w http.ResponseWriter, r *http.Request) {
-
-	params := r.Context().Value("params").(httprouter.Params)
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) GetSecuredUser(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	if r.Context().Value("Claimer-Role").(string) == "admin" || fmt.Sprint(id) == r.Context().Value("Claimer-ID").(string) {
+	if ctx.Param("Claimer-Role") == "admin" || fmt.Sprint(id) == ctx.GetString("Claimer-ID") {
 		u, err := c.Model.Get(id)
 		if err != nil {
-			util.ErrorJSON(w, err)
+			util.ErrorJSON(ctx, err)
 			return
 		}
-
-		util.WriteJSON(w, http.StatusOK, u, "user")
+		util.WriteJSON(ctx, http.StatusOK, u, "user")
 	} else {
-		util.ErrorJSON(w, errors.New("unauthorized - cannot get other user's data"), http.StatusForbidden)
+		util.ErrorJSON(ctx, errors.New("unauthorized - cannot get other user's data"), http.StatusForbidden)
 	}
 }
 
 // Example secured route only for admins - already checked by middleware
-func (c *Controller) GetSecuredAdmin(w http.ResponseWriter, r *http.Request) {
-	params := r.Context().Value("params").(httprouter.Params)
-
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) GetSecuredAdmin(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	u, err := c.Model.Get(id)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, u, "user")
+	util.WriteJSON(ctx, http.StatusOK, u, "user")
 }
-func (c *Controller) Insert(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Insert(ctx *gin.Context) {
 	var req loginRequest
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := ctx.BindJSON(&req)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	err = c.Model.Insert(&user.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, "user created successfully", "response")
-
+	util.WriteJSON(ctx, http.StatusOK, "user created successfully", "response")
 }
-func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) Update(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	var req userRequest
 
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err = ctx.BindJSON(&req)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
@@ -289,51 +280,50 @@ func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = c.Model.Update(&u)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	ok := okResponse{
 		OK: true,
 	}
-	util.WriteJSON(w, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
-func (c *Controller) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) UpdatePhoto(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	var req photoRequest
 
-	//uJson := r.PostFormValue("user")
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err = ctx.BindJSON(&req)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	// Decode base64 webp to bytes
 	unbased, err := base64.StdEncoding.DecodeString(req.PhotoBase64)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 	// Decode bytes to image
 	reader := bytes.NewReader(unbased)
 	image, err := webp.Decode(reader, &decoder.Options{})
 	if err != nil {
-		util.ErrorJSON(w, err)
+		fmt.Println("HOLA3")
+		util.ErrorJSON(ctx, err)
 		return
 	}
-	// Create file
+	// Create our own file
 	imageName := "user" + fmt.Sprint(id)
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 	defer f.Close()
@@ -347,56 +337,53 @@ func (c *Controller) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 
 	err = c.Model.UpdatePhoto(id, imageName)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	ok := okResponse{
 		OK: true,
 	}
-	util.WriteJSON(w, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
-func (c *Controller) UpdateCV(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) UpdateCV(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	// Retrieve the file from r
-	var maxUploadSize int64 = 1024 * 1024 //1mb
-
-	err = r.ParseMultipartForm(maxUploadSize)
+	// Retrieve the file
+	var req fileRequest
+	err = ctx.ShouldBind(&req)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
-	file, fileHeader, err := r.FormFile("file")
-	if err != nil {
-		util.ErrorJSON(w, err)
-		return
-	}
-	defer file.Close()
 
 	// Check if file is .pdf
-	if filepath.Ext(fileHeader.Filename) != ".pdf" {
-		util.ErrorJSON(w, errors.New("file extension must be pdf"))
+	if filepath.Ext(req.File.Filename) != ".pdf" {
+		util.ErrorJSON(ctx, errors.New("file extension must be pdf"))
 		return
 	}
 
-	// Create file
+	// Open file
+	file, err := req.File.Open()
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+	}
+	// Create our own file
 	fileName := "usercv" + fmt.Sprint(id)
 	f, err := os.OpenFile("./storage/users/"+fileName+".pdf", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 	defer f.Close()
 	// Save file in storage
 	io.Copy(f, file)
-	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", fileHeader.Filename, fileHeader.Size)
+	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", req.File.Filename, req.File.Size)
 
 	// Save fileName in DB
 	c.Model.UpdateCV(id, fileName)
@@ -404,36 +391,34 @@ func (c *Controller) UpdateCV(w http.ResponseWriter, r *http.Request) {
 	ok := okResponse{
 		OK: true,
 	}
-	util.WriteJSON(w, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
-func (c *Controller) Delete(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-
-	id, err := strconv.Atoi(params.ByName("id"))
+func (c *Controller) Delete(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	err = c.Model.Delete(id)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
 	ok := okResponse{
 		OK: true,
 	}
-	util.WriteJSON(w, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
 
-func (c *Controller) Login(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Login(ctx *gin.Context) {
 	var req loginRequest
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := ctx.BindJSON(&req)
 	if err != nil {
-		util.ErrorJSON(w, err)
+		util.ErrorJSON(ctx, err)
 		return
 	}
 
@@ -441,13 +426,13 @@ func (c *Controller) Login(w http.ResponseWriter, r *http.Request) {
 	if len(req.Email) != 0 {
 		u, err = c.Model.GetByEmailWithPassword(req.Email)
 		if err != nil {
-			util.ErrorJSON(w, err, http.StatusUnauthorized)
+			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 			return
 		}
 	} else {
 		u, err = c.Model.GetByNameWithPassword(req.Name)
 		if err != nil {
-			util.ErrorJSON(w, err, http.StatusUnauthorized)
+			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 			return
 		}
 	}
@@ -456,18 +441,18 @@ func (c *Controller) Login(w http.ResponseWriter, r *http.Request) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password))
 	if err != nil {
-		util.ErrorJSON(w, err, http.StatusUnauthorized)
+		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		return
 	}
 
 	// Generate jwt token after successful login
 	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.JwtSecret)
 	if err != nil {
-		util.ErrorJSON(w, err, http.StatusNotImplemented)
+		util.ErrorJSON(ctx, err, http.StatusNotImplemented)
 		return
 	}
 
-	util.WriteJSON(w, http.StatusOK, loginResponse{Id: u.ID, Token: string(token)}, "response")
+	util.WriteJSON(ctx, http.StatusOK, loginResponse{Id: u.ID, Token: string(token)}, "response")
 }
 
 // ...

@@ -4,77 +4,89 @@ import (
 	"API-REST/api-gateway/controllers"
 	"API-REST/api-gateway/middleware"
 	util "API-REST/api-gateway/utilities"
-	"context"
+	"API-REST/services/conf"
+	"API-REST/services/logger"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
-	"github.com/justinas/alice"
+	"github.com/gin-gonic/gin"
 )
 
-func wrap(next http.Handler) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := context.WithValue(r.Context(), "params", ps)
-		next.ServeHTTP(w, r.WithContext(ctx))
+func Start() error {
+	// Build controllers
+	controllers.Build()
+
+	// Set GIN Mode
+	if conf.Env.GetString("ENVIRONMENT") == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
 	}
-}
 
-func Routes() http.Handler {
-	router := httprouter.New()
+	// Setup GIN api server
+	r := gin.Default()
+	r.MaxMultipartMemory = conf.Conf.GetInt64("maxMultiPartMemory")
 
-	secureUser := alice.New(middleware.CheckToken)
-	secureAdmin := alice.New(middleware.CheckToken, middleware.CheckAdmin)
+	// Setup groups and middleware
+	api := r.Group(conf.Conf.GetString("apiBasePath"))
+	api.Use(middleware.EnableCORS)
+
+	apiPrivate := api.Group("/")
+	apiPrivate.Use(middleware.CheckToken)
+
+	apiAdmin := apiPrivate.Group("/")
+	apiAdmin.Use(middleware.CheckAdmin)
+
+	api.GET("/status", func(ctx *gin.Context) {
+		appStatus := struct {
+			Status      string `json:"status"`
+			Environment string `json:"environment"`
+			Version     string `json:"version"`
+		}{
+			Status:      "Available",
+			Environment: conf.Env.GetString("ENVIRONMENT"),
+			Version:     conf.Env.GetString("VERSION"),
+		}
+
+		util.WriteJSON(ctx, http.StatusOK, appStatus, "status")
+	})
 
 	// Unsecured routes
-	router.HandlerFunc(http.MethodGet, "/status", statusHandler)
-	router.HandlerFunc(http.MethodPost, "/api/v1/login", controllers.User.Login)
-	router.HandlerFunc(http.MethodPost, "/api/v1/users", controllers.User.Insert)
-	router.HandlerFunc(http.MethodGet, "/api/v1/users", controllers.User.GetAll)
-	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id", controllers.User.Get)
-	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/photo", controllers.User.GetPhoto)
-	router.HandlerFunc(http.MethodGet, "/api/v1/users/:id/cv", controllers.User.GetCV)
-	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id", controllers.User.Update)
-	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id/photo", controllers.User.UpdatePhoto)
-	router.HandlerFunc(http.MethodPut, "/api/v1/users/:id/cv", controllers.User.UpdateCV)
-	router.HandlerFunc(http.MethodDelete, "/api/v1/users/:id", controllers.User.Delete)
+	api.POST("/login", controllers.User.Login)
+	api.POST("/users", controllers.User.Insert)
+	api.GET("/users", controllers.User.GetAll)
+	api.GET("/users/:id", controllers.User.Get)
+	api.GET("/users/:id/photo", controllers.User.GetPhoto)
+	api.GET("/users/:id/cv", controllers.User.GetCV)
+	api.PUT("/users/:id", controllers.User.Update)
+	api.PUT("/users/:id/photo", controllers.User.UpdatePhoto)
+	api.PUT("/users/:id/cv", controllers.User.UpdateCV)
+	api.DELETE("/users/:id", controllers.User.Delete)
 
-	router.HandlerFunc(http.MethodGet, "/api/v1/assets", controllers.Asset.GetAll)
-	router.HandlerFunc(http.MethodGet, "/api/v1/assets/:id", controllers.Asset.Get)
-	router.HandlerFunc(http.MethodGet, "/api/v1/assets/:id/attributes", controllers.Asset.GetWithAttributes)
-	router.HandlerFunc(http.MethodGet, "/api/v1/assets-names", controllers.Asset.GetNames)
-	router.HandlerFunc(http.MethodPost, "/api/v1/assets", controllers.Asset.Insert)
-	router.HandlerFunc(http.MethodPut, "/api/v1/assets/:id", controllers.Asset.Update)
-	router.HandlerFunc(http.MethodDelete, "/api/v1/assets/:id", controllers.Asset.Delete)
+	api.GET("/assets", controllers.Asset.GetAll)
+	api.GET("/assets/:id", controllers.Asset.Get)
+	api.GET("/assets/:id/attributes", controllers.Asset.GetWithAttributes)
+	api.GET("/assets-names", controllers.Asset.GetNames)
+	api.POST("/assets", controllers.Asset.Insert)
+	api.PUT("/assets/:id", controllers.Asset.Update)
+	api.DELETE("/assets/:id", controllers.Asset.Delete)
 
-	router.HandlerFunc(http.MethodGet, "/api/v1/attributes", controllers.Attribute.GetAll)
-	router.HandlerFunc(http.MethodGet, "/api/v1/attributes/:id", controllers.Attribute.Get)
-	router.HandlerFunc(http.MethodPost, "/api/v1/attributes", controllers.Attribute.Insert)
-	router.HandlerFunc(http.MethodPut, "/api/v1/attributes/:id", controllers.Attribute.Update)
-	router.HandlerFunc(http.MethodDelete, "/api/v1/attributes/:id", controllers.Attribute.Delete)
-
+	api.GET("/attributes", controllers.Attribute.GetAll)
+	api.GET("/attributes/:id", controllers.Attribute.Get)
+	api.POST("/attributes", controllers.Attribute.Insert)
+	api.PUT("/attributes/:id", controllers.Attribute.Update)
+	api.DELETE("/attributes/:id", controllers.Attribute.Delete)
 	// ...
 
 	// Secured routes
-	router.GET("/api/v1/users/:id/exampleSecuredUserOrAdmin", wrap(secureUser.ThenFunc(controllers.User.GetSecuredUser)))
-	router.GET("/api/v1/users/:id/exampleSecuredOnlyAdmin", wrap(secureAdmin.ThenFunc(controllers.User.GetSecuredAdmin)))
-	// router.POST("/v1/create-payment-intent", wrap(secure.ThenFunc(createPaymentIntent)))
-	// router.POST("/v1/confirm-payment", wrap(secure.ThenFunc(confirmPayment)))
+	apiPrivate.GET("/users/:id/exampleSecuredUserOrAdmin", controllers.User.GetSecuredUser)
+	apiAdmin.GET("/users/:id/exampleSecuredOnlyAdmin", controllers.User.GetSecuredAdmin)
 	// ...
 
-	return middleware.EnableCORS(router)
-}
+	// Log start
+	host := conf.Env.GetString("HOST")
+	port := conf.Env.GetString("PORT")
+	logger.Logger.Printf("Starting server on http://%s:%s\n", host, port)
 
-type AppStatus struct {
-	Status      string `json:"status"`
-	Environment string `json:"environment"`
-	Version     string `json:"version"`
-}
-
-// statusHandler handles /status
-func statusHandler(w http.ResponseWriter, r *http.Request) {
-	currentStatus := AppStatus{
-		Status: "Available",
-		//Environment: S.Config.env,
-		//Version:     VERSION,
-	}
-	util.WriteJSON(w, http.StatusOK, currentStatus, "status")
+	// Run server
+	return r.Run(conf.Env.GetString("HOST") + ":" + port)
 }

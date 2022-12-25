@@ -1,14 +1,12 @@
 package middleware
 
 import (
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
-func EnableCORS(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+func EnableCORS(ctx *gin.Context) {
+	ctx.Header("Access-Control-Allow-Origin", "*")
+	ctx.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		handler.ServeHTTP(w, r)
-	})
+	ctx.Next()
 }

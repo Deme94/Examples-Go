@@ -1,32 +1,20 @@
 package utilities
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func WriteJSON(w http.ResponseWriter, status int, data interface{}, wrap string) error {
-	wrapper := make(map[string]interface{})
-
-	wrapper[wrap] = data
-
-	js, err := json.Marshal(wrapper)
-	if err != nil {
-		return err
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	w.Write(js)
-
-	return nil
+func WriteJSON(ctx *gin.Context, status int, data interface{}, wrap string) {
+	ctx.JSON(status, gin.H{wrap: data})
 }
 
 type errorResponse struct {
 	Message string `json:"message"`
 }
 
-func ErrorJSON(w http.ResponseWriter, err error, status ...int) {
+func ErrorJSON(ctx *gin.Context, err error, status ...int) {
 	statusCode := http.StatusBadRequest
 	if len(status) > 0 {
 		statusCode = status[0]
@@ -36,5 +24,5 @@ func ErrorJSON(w http.ResponseWriter, err error, status ...int) {
 		Message: err.Error(),
 	}
 
-	WriteJSON(w, statusCode, theError, "error")
+	WriteJSON(ctx, statusCode, theError, "error")
 }
