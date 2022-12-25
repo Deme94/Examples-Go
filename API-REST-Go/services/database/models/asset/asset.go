@@ -1,6 +1,7 @@
-package models
+package asset
 
 import (
+	"API-REST/services/database/models/attribute"
 	"context"
 	"errors"
 	"log"
@@ -14,13 +15,13 @@ import (
 
 // MAIN STRUCT
 type Asset struct {
-	ID         primitive.ObjectID `bson:"_id, omitempty"`
-	Name       string             `bson:"name"`
-	Date       time.Time          `bson:"date"`
-	CreatedAt  time.Time          `bson:"created_at"`
-	UpdatedAt  time.Time          `bson:"updated_at"`
-	Attributes []*Attribute       `bson:"attributes"`
-	// ... description, etc
+	ID         primitive.ObjectID     `bson:"_id, omitempty"`
+	Name       string                 `bson:"name"`
+	Date       time.Time              `bson:"date"`
+	CreatedAt  time.Time              `bson:"created_at"`
+	UpdatedAt  time.Time              `bson:"updated_at"`
+	Attributes []*attribute.Attribute `bson:"attributes"`
+	// ...
 }
 
 // other structs
@@ -28,17 +29,12 @@ type Asset struct {
 // ...
 
 // DB COLLECTION ***************************************************************
-type AssetModel struct {
+type Model struct {
 	Coll *mongo.Collection
-	Db   *mongo.Database
-}
-
-func NewAssetModel(coll *mongo.Collection, db *mongo.Database) *AssetModel {
-	return &AssetModel{coll, db}
 }
 
 // DB QUERIES ---------------------------------------------------------------
-func (m *AssetModel) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[string]interface{}) ([]*Asset, error) {
+func (m *Model) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[string]interface{}) ([]*Asset, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}
 
@@ -86,7 +82,7 @@ func (m *AssetModel) GetAll(fromDate time.Time, toDate time.Time, filterOptions 
 
 	return assets, nil
 }
-func (m *AssetModel) Get(id string) (*Asset, error) {
+func (m *Model) Get(id string) (*Asset, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -106,7 +102,7 @@ func (m *AssetModel) Get(id string) (*Asset, error) {
 }
 
 // Lookup (join) example
-func (m *AssetModel) GetWithAttributes(id string) (*Asset, error) {
+func (m *Model) GetWithAttributes(id string) (*Asset, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -152,7 +148,7 @@ func (m *AssetModel) GetWithAttributes(id string) (*Asset, error) {
 }
 
 // Projection example
-func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*Asset, error) {
+func (m *Model) GetNames(fromDate time.Time, toDate time.Time) ([]*Asset, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}
 
@@ -198,7 +194,7 @@ func (m *AssetModel) GetNames(fromDate time.Time, toDate time.Time) ([]*Asset, e
 
 	return assets, nil
 }
-func (m *AssetModel) Insert(asset *Asset) error {
+func (m *Model) Insert(asset *Asset) error {
 	_, err := m.Coll.InsertOne(context.TODO(),
 		bson.D{
 			{"name", asset.Name},
@@ -208,7 +204,7 @@ func (m *AssetModel) Insert(asset *Asset) error {
 	)
 	return err
 }
-func (m *AssetModel) InsertMany(assets []*Asset) error {
+func (m *Model) InsertMany(assets []*Asset) error {
 	var documents []interface{}
 	for _, a := range assets {
 		documents = append(documents,
@@ -221,7 +217,7 @@ func (m *AssetModel) InsertMany(assets []*Asset) error {
 	_, err := m.Coll.InsertMany(context.TODO(), documents)
 	return err
 }
-func (m *AssetModel) Update(asset *Asset) error {
+func (m *Model) Update(asset *Asset) error {
 	_, err := m.Coll.UpdateOne(
 		context.TODO(),
 		bson.D{
@@ -238,7 +234,7 @@ func (m *AssetModel) Update(asset *Asset) error {
 
 	return err
 }
-func (m *AssetModel) Delete(id string) error {
+func (m *Model) Delete(id string) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err

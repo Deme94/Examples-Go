@@ -1,35 +1,24 @@
-package controllers
+package asset
 
 import (
-	util "API-REST/cmd/api/utilities"
-	m "API-REST/models"
+	util "API-REST/api-gateway/utilities"
+	"API-REST/services/database/models/asset"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // CONTROLLER ***************************************************************
-type AssetController struct {
-	model  *m.AssetModel
-	logger *log.Logger
-}
-
-func NewAssetController(coll *mongo.Collection, db *mongo.Database, logger *log.Logger) *AssetController {
-	c := AssetController{}
-	c.model = &m.AssetModel{Coll: coll, Db: db}
-	c.logger = logger
-
-	return &c
+type Controller struct {
+	Model *asset.Model
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
-func (c *AssetController) getDateRangeFromQuery(query url.Values) (time.Time, time.Time, error) {
+func (c *Controller) getDateRangeFromQuery(query url.Values) (time.Time, time.Time, error) {
 	var fromDate time.Time
 	var toDate time.Time
 
@@ -69,7 +58,7 @@ type assetNameResponse struct {
 // ...
 
 // API HANDLERS ---------------------------------------------------------------
-func (c *AssetController) GetAll(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetAll(w http.ResponseWriter, r *http.Request) {
 	fromDate, toDate, err := c.getDateRangeFromQuery(r.URL.Query())
 	if err != nil {
 		util.ErrorJSON(w, err)
@@ -83,7 +72,7 @@ func (c *AssetController) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 	// other filter options...
 
-	assets, err := c.model.GetAll(fromDate, toDate, filterOptions)
+	assets, err := c.Model.GetAll(fromDate, toDate, filterOptions)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -91,12 +80,12 @@ func (c *AssetController) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, assets, "assets")
 }
-func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Get(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id := params.ByName("id")
 
-	a, err := c.model.Get(id)
+	a, err := c.Model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -104,12 +93,12 @@ func (c *AssetController) Get(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, a, "asset")
 }
-func (c *AssetController) GetWithAttributes(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetWithAttributes(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id := params.ByName("id")
 
-	a, err := c.model.GetWithAttributes(id)
+	a, err := c.Model.GetWithAttributes(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -117,14 +106,14 @@ func (c *AssetController) GetWithAttributes(w http.ResponseWriter, r *http.Reque
 
 	util.WriteJSON(w, http.StatusOK, a, "asset")
 }
-func (c *AssetController) GetNames(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetNames(w http.ResponseWriter, r *http.Request) {
 	fromDate, toDate, err := c.getDateRangeFromQuery(r.URL.Query())
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	assets, err := c.model.GetNames(fromDate, toDate)
+	assets, err := c.Model.GetNames(fromDate, toDate)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -139,9 +128,9 @@ func (c *AssetController) GetNames(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, res, "assets")
 }
-func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Insert(w http.ResponseWriter, r *http.Request) {
 	var req []assetRequest
-	var assets []*m.Asset
+	var assets []*asset.Asset
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -155,17 +144,17 @@ func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 			util.ErrorJSON(w, err)
 			return
 		}
-		assets = append(assets, &m.Asset{Name: a.Name, Date: date})
+		assets = append(assets, &asset.Asset{Name: a.Name, Date: date})
 	}
 
 	if len(assets) == 1 {
-		err = c.model.Insert(assets[0])
+		err = c.Model.Insert(assets[0])
 		if err != nil {
 			util.ErrorJSON(w, err)
 			return
 		}
 	} else {
-		err = c.model.InsertMany(assets)
+		err = c.Model.InsertMany(assets)
 		if err != nil {
 			util.ErrorJSON(w, err)
 			return
@@ -174,7 +163,7 @@ func (c *AssetController) Insert(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, "assets inserted successfully", "response")
 }
-func (c *AssetController) Update(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id := params.ByName("id")
 
@@ -191,7 +180,7 @@ func (c *AssetController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var a m.Asset
+	var a asset.Asset
 	a.ID, err = primitive.ObjectIDFromHex(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
@@ -200,7 +189,7 @@ func (c *AssetController) Update(w http.ResponseWriter, r *http.Request) {
 	a.Name = req.Name
 	a.Date = date
 
-	err = c.model.Update(&a)
+	err = c.Model.Update(&a)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -208,11 +197,11 @@ func (c *AssetController) Update(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, "asset updated successfully", "response")
 }
-func (c *AssetController) Delete(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Delete(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id := params.ByName("id")
 
-	err := c.model.Delete(id)
+	err := c.Model.Delete(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return

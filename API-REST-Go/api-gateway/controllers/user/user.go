@@ -1,4 +1,4 @@
-package controllers
+package user
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/arthurkushman/buildsqlx"
 	"github.com/julienschmidt/httprouter"
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
@@ -23,38 +22,27 @@ import (
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
 
-	util "API-REST/cmd/api/utilities"
-	m "API-REST/models"
+	util "API-REST/api-gateway/utilities"
+	"API-REST/services/conf"
+	"API-REST/services/database/models/user"
+	"API-REST/services/logger"
 )
 
 // CONTROLLER ***************************************************************
-type UserController struct {
-	model     *m.UserModel
-	logger    *log.Logger
-	jwtSecret string
-	domain    string
-}
-
-func NewUserController(db *buildsqlx.DB, logger *log.Logger, secret string, domain string) *UserController {
-	c := UserController{}
-	c.model = &m.UserModel{Db: db}
-	c.logger = logger
-	c.jwtSecret = secret
-	c.domain = domain
-
-	return &c
+type Controller struct {
+	Model *user.Model
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
-func (c *UserController) generateJwtToken(subject string, secret string) ([]byte, error) {
-
+func (c *Controller) generateJwtToken(subject string, secret string) ([]byte, error) {
+	domain := conf.Domain
 	var claims jwt.Claims
 	claims.Subject = fmt.Sprint(subject)
 	claims.Issued = jwt.NewNumericTime(time.Now())
 	claims.NotBefore = jwt.NewNumericTime(time.Now())
 	claims.Expires = jwt.NewNumericTime(time.Now().Add(24 * time.Hour))
-	claims.Issuer = c.domain
-	claims.Audiences = []string{c.domain}
+	claims.Issuer = domain
+	claims.Audiences = []string{domain}
 
 	token, err := claims.HMACSign(jwt.HS256, []byte(secret))
 	if err != nil {
@@ -64,8 +52,8 @@ func (c *UserController) generateJwtToken(subject string, secret string) ([]byte
 	return token, nil
 }
 
-func (c *UserController) CheckRole(id int) (string, error) {
-	return c.model.GetRole(id)
+func (c *Controller) CheckRole(id int) (string, error) {
+	return c.Model.GetRole(id)
 }
 
 // ...
@@ -88,10 +76,8 @@ type photoRequest struct {
 	PhotoBase64 string `json:"photo_base64"`
 }
 
-// swagger:response usersResponse
 type usersResponse struct {
-	// user list
-	Users []*m.User `json:"users"`
+	Users []*user.User `json:"users"`
 }
 
 type loginResponse struct {
@@ -106,17 +92,17 @@ type okResponse struct {
 // ...
 
 // API HANDLERS ---------------------------------------------------------------
-func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetAll(w http.ResponseWriter, r *http.Request) {
 
-	var usrs []*m.User
+	var usrs []*user.User
 	var err error
 
 	// if query parameters
 	y := r.URL.Query().Get("year")
 	if len(y) != 0 {
-		usrs, err = c.model.GetAllByYear(y)
+		usrs, err = c.Model.GetAllByYear(y)
 	} else {
-		usrs, err = c.model.GetAll()
+		usrs, err = c.Model.GetAll()
 
 	}
 	if err != nil {
@@ -126,17 +112,17 @@ func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, usersResponse{usrs}, "users")
 }
-func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Get(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	u, err := c.model.Get(id)
+	u, err := c.Model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -144,17 +130,17 @@ func (c *UserController) Get(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, u, "user")
 }
-func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetPhoto(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	imageName, err := c.model.GetPhoto(id)
+	imageName, err := c.Model.GetPhoto(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -185,16 +171,16 @@ func (c *UserController) GetPhoto(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, imageBase64, "photo")
 }
-func (c *UserController) GetCV(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetCV(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	cvName, err := c.model.GetCV(id)
+	cvName, err := c.Model.GetCV(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -205,18 +191,18 @@ func (c *UserController) GetCV(w http.ResponseWriter, r *http.Request) {
 }
 
 // Example secured route with different behaviour for role user and role admin
-func (c *UserController) GetSecuredUser(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetSecuredUser(w http.ResponseWriter, r *http.Request) {
 
 	params := r.Context().Value("params").(httprouter.Params)
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
 
 	if r.Context().Value("Claimer-Role").(string) == "admin" || fmt.Sprint(id) == r.Context().Value("Claimer-ID").(string) {
-		u, err := c.model.Get(id)
+		u, err := c.Model.Get(id)
 		if err != nil {
 			util.ErrorJSON(w, err)
 			return
@@ -229,17 +215,17 @@ func (c *UserController) GetSecuredUser(w http.ResponseWriter, r *http.Request) 
 }
 
 // Example secured route only for admins - already checked by middleware
-func (c *UserController) GetSecuredAdmin(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetSecuredAdmin(w http.ResponseWriter, r *http.Request) {
 	params := r.Context().Value("params").(httprouter.Params)
 
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	u, err := c.model.Get(id)
+	u, err := c.Model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -247,7 +233,7 @@ func (c *UserController) GetSecuredAdmin(w http.ResponseWriter, r *http.Request)
 
 	util.WriteJSON(w, http.StatusOK, u, "user")
 }
-func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Insert(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -262,7 +248,7 @@ func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.model.Insert(&m.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
+	err = c.Model.Insert(&user.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -271,12 +257,12 @@ func (c *UserController) Insert(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, "user created successfully", "response")
 
 }
-func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
@@ -295,13 +281,13 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var u m.User
+	var u user.User
 	u.ID = id
 	u.Name = req.Name // cambiar por ruta del archivo creado
 	u.Email = req.Email
 	u.Password = string(hashedPassword)
 
-	err = c.model.Update(&u)
+	err = c.Model.Update(&u)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -312,11 +298,11 @@ func (c *UserController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteJSON(w, http.StatusOK, ok, "OK")
 }
-func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
@@ -357,9 +343,9 @@ func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 		log.Fatalln(err)
 	}
 	webp.Encode(f, image, options)
-	c.logger.Println("user's photo saved")
+	logger.Logger.Println("user's photo saved")
 
-	err = c.model.UpdatePhoto(id, imageName)
+	err = c.Model.UpdatePhoto(id, imageName)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -370,11 +356,11 @@ func (c *UserController) UpdatePhoto(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteJSON(w, http.StatusOK, ok, "OK")
 }
-func (c *UserController) UpdateCV(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) UpdateCV(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
@@ -410,27 +396,27 @@ func (c *UserController) UpdateCV(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	// Save file in storage
 	io.Copy(f, file)
-	c.logger.Printf("user's cv saved. Name: %s | Size: %d", fileHeader.Filename, fileHeader.Size)
+	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", fileHeader.Filename, fileHeader.Size)
 
 	// Save fileName in DB
-	c.model.UpdateCV(id, fileName)
+	c.Model.UpdateCV(id, fileName)
 
 	ok := okResponse{
 		OK: true,
 	}
 	util.WriteJSON(w, http.StatusOK, ok, "OK")
 }
-func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Delete(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil {
-		c.logger.Print(errors.New("invalid id parameter"))
+		logger.Logger.Print(errors.New("invalid id parameter"))
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	err = c.model.Delete(id)
+	err = c.Model.Delete(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -442,7 +428,7 @@ func (c *UserController) Delete(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, ok, "OK")
 }
 
-func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -451,15 +437,15 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var u *m.User
+	var u *user.User
 	if len(req.Email) != 0 {
-		u, err = c.model.GetByEmailWithPassword(req.Email)
+		u, err = c.Model.GetByEmailWithPassword(req.Email)
 		if err != nil {
 			util.ErrorJSON(w, err, http.StatusUnauthorized)
 			return
 		}
 	} else {
-		u, err = c.model.GetByNameWithPassword(req.Name)
+		u, err = c.Model.GetByNameWithPassword(req.Name)
 		if err != nil {
 			util.ErrorJSON(w, err, http.StatusUnauthorized)
 			return
@@ -475,7 +461,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate jwt token after successful login
-	token, err := c.generateJwtToken(fmt.Sprint(u.ID), c.jwtSecret)
+	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.JwtSecret)
 	if err != nil {
 		util.ErrorJSON(w, err, http.StatusNotImplemented)
 		return

@@ -1,0 +1,4 @@
+# Logger
+logDir: "./logs"
+logFileName: "log"
+logFileExt: "txt"

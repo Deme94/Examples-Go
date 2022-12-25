@@ -22,9 +22,7 @@ func WriteJSON(w http.ResponseWriter, status int, data interface{}, wrap string)
 	return nil
 }
 
-// swagger:response errorResponse
 type errorResponse struct {
-	// error message
 	Message string `json:"message"`
 }
 

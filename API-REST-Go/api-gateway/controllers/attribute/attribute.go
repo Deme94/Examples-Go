@@ -1,35 +1,24 @@
-package controllers
+package attribute
 
 import (
-	util "API-REST/cmd/api/utilities"
-	m "API-REST/models"
+	util "API-REST/api-gateway/utilities"
+	"API-REST/services/database/models/attribute"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // CONTROLLER ***************************************************************
-type AttributeController struct {
-	model  *m.AttributeModel
-	logger *log.Logger
-}
-
-func NewAttributeController(coll *mongo.Collection, db *mongo.Database, logger *log.Logger) *AttributeController {
-	c := AttributeController{}
-	c.model = &m.AttributeModel{Coll: coll, Db: db}
-	c.logger = logger
-
-	return &c
+type Controller struct {
+	Model *attribute.Model
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
-func (c *AttributeController) getDateRangeFromQuery(query url.Values) (time.Time, time.Time, error) {
+func (c *Controller) getDateRangeFromQuery(query url.Values) (time.Time, time.Time, error) {
 	var fromDate time.Time
 	var toDate time.Time
 
@@ -69,7 +58,7 @@ type attributeRequest struct {
 // ...
 
 // API HANDLERS ---------------------------------------------------------------
-func (c *AttributeController) GetAll(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetAll(w http.ResponseWriter, r *http.Request) {
 	fromDate, toDate, err := c.getDateRangeFromQuery(r.URL.Query())
 	if err != nil {
 		util.ErrorJSON(w, err)
@@ -87,7 +76,7 @@ func (c *AttributeController) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 	// other filter options...
 
-	attributes, err := c.model.GetAll(fromDate, toDate, filterOptions)
+	attributes, err := c.Model.GetAll(fromDate, toDate, filterOptions)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -95,12 +84,12 @@ func (c *AttributeController) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, attributes, "attributes")
 }
-func (c *AttributeController) Get(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Get(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id := params.ByName("id")
 
-	a, err := c.model.Get(id)
+	a, err := c.Model.Get(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -108,9 +97,9 @@ func (c *AttributeController) Get(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, a, "attribute")
 }
-func (c *AttributeController) Insert(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Insert(w http.ResponseWriter, r *http.Request) {
 	var req []attributeRequest
-	var attributes []*m.Attribute
+	var attributes []*attribute.Attribute
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -125,8 +114,8 @@ func (c *AttributeController) Insert(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		attributes = append(attributes,
-			&m.Attribute{
-				Metadata: m.AttributeMetadata{
+			&attribute.Attribute{
+				Metadata: attribute.AttributeMetadata{
 					AssetName: a.AssetName,
 					Name:      a.Name,
 					Label:     a.Label,
@@ -139,13 +128,13 @@ func (c *AttributeController) Insert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(attributes) == 1 {
-		err = c.model.Insert(attributes[0])
+		err = c.Model.Insert(attributes[0])
 		if err != nil {
 			util.ErrorJSON(w, err)
 			return
 		}
 	} else {
-		err = c.model.InsertMany(attributes)
+		err = c.Model.InsertMany(attributes)
 		if err != nil {
 			util.ErrorJSON(w, err)
 			return
@@ -154,7 +143,7 @@ func (c *AttributeController) Insert(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, "attributes inserted successfully", "response")
 }
-func (c *AttributeController) Update(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Update(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id := params.ByName("id")
 
@@ -171,14 +160,14 @@ func (c *AttributeController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var a m.Attribute
+	var a attribute.Attribute
 	a.ID, err = primitive.ObjectIDFromHex(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
 	}
 
-	a.Metadata = m.AttributeMetadata{
+	a.Metadata = attribute.AttributeMetadata{
 		AssetName: req.AssetName,
 		Name:      req.Name,
 		Label:     req.Label,
@@ -187,7 +176,7 @@ func (c *AttributeController) Update(w http.ResponseWriter, r *http.Request) {
 	a.Timestamp = timestamp
 	a.Value = req.Value
 
-	err = c.model.Update(&a)
+	err = c.Model.Update(&a)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return
@@ -195,11 +184,11 @@ func (c *AttributeController) Update(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, "attribute updated successfully", "response")
 }
-func (c *AttributeController) Delete(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) Delete(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	id := params.ByName("id")
 
-	err := c.model.Delete(id)
+	err := c.Model.Delete(id)
 	if err != nil {
 		util.ErrorJSON(w, err)
 		return

@@ -1,4 +1,4 @@
-package models
+package attribute
 
 import (
 	"context"
@@ -28,17 +28,12 @@ type AttributeMetadata struct {
 // ...
 
 // DB COLLECTION ***************************************************************
-type AttributeModel struct {
+type Model struct {
 	Coll *mongo.Collection
-	Db   *mongo.Database
-}
-
-func NewAttributeModel(coll *mongo.Collection, db *mongo.Database) *AttributeModel {
-	return &AttributeModel{coll, db}
 }
 
 // DB QUERIES ---------------------------------------------------------------
-func (m *AttributeModel) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[string]interface{}) ([]*Attribute, error) {
+func (m *Model) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[string]interface{}) ([]*Attribute, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}
 
@@ -88,7 +83,7 @@ func (m *AttributeModel) GetAll(fromDate time.Time, toDate time.Time, filterOpti
 
 	return atts, nil
 }
-func (m *AttributeModel) Get(id string) (*Attribute, error) {
+func (m *Model) Get(id string) (*Attribute, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -106,7 +101,7 @@ func (m *AttributeModel) Get(id string) (*Attribute, error) {
 	}
 	return &att, nil
 }
-func (m *AttributeModel) Insert(attribute *Attribute) error {
+func (m *Model) Insert(attribute *Attribute) error {
 	_, err := m.Coll.InsertOne(context.TODO(),
 		bson.D{
 			{"metadata", bson.D{
@@ -121,7 +116,7 @@ func (m *AttributeModel) Insert(attribute *Attribute) error {
 	)
 	return err
 }
-func (m *AttributeModel) InsertMany(attributes []*Attribute) error {
+func (m *Model) InsertMany(attributes []*Attribute) error {
 	var documents []interface{}
 	for _, att := range attributes {
 		documents = append(documents,
@@ -139,7 +134,7 @@ func (m *AttributeModel) InsertMany(attributes []*Attribute) error {
 	_, err := m.Coll.InsertMany(context.TODO(), documents)
 	return err
 }
-func (m *AttributeModel) Update(attribute *Attribute) error {
+func (m *Model) Update(attribute *Attribute) error {
 	_, err := m.Coll.UpdateOne(
 		context.TODO(),
 		bson.D{
@@ -159,7 +154,7 @@ func (m *AttributeModel) Update(attribute *Attribute) error {
 
 	return err
 }
-func (m *AttributeModel) Delete(id string) error {
+func (m *Model) Delete(id string) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err

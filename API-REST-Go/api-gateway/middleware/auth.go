@@ -1,6 +1,9 @@
-package main
+package middleware
 
 import (
+	"API-REST/api-gateway/controllers"
+	util "API-REST/api-gateway/utilities"
+	"API-REST/services/conf"
 	"context"
 	"errors"
 	"net/http"
@@ -9,20 +12,9 @@ import (
 	"time"
 
 	"github.com/pascaldekloe/jwt"
-
-	util "API-REST/cmd/api/utilities"
 )
 
-func (s *server) enableCORS(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
-func (s *server) checkToken(next http.Handler) http.Handler {
+func CheckToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Authorization") // It tells the client Authorization is important
 
@@ -46,7 +38,7 @@ func (s *server) checkToken(next http.Handler) http.Handler {
 		}
 
 		token := headerParts[1]
-		claims, err := jwt.HMACCheck([]byte(token), []byte(s.config.jwt.secret))
+		claims, err := jwt.HMACCheck([]byte(token), []byte(conf.JwtSecret))
 		if err != nil {
 			util.ErrorJSON(w, err, http.StatusUnauthorized)
 			return
@@ -57,12 +49,12 @@ func (s *server) checkToken(next http.Handler) http.Handler {
 			return
 		}
 
-		if !claims.AcceptAudience(domain) {
+		if !claims.AcceptAudience(conf.Domain) {
 			util.ErrorJSON(w, errors.New("unauthorized - invalid audience"), http.StatusUnauthorized)
 			return
 		}
 
-		if claims.Issuer != domain {
+		if claims.Issuer != conf.Domain {
 			util.ErrorJSON(w, errors.New("unauthorized - invalid issuer"), http.StatusUnauthorized)
 			return
 		}
@@ -72,7 +64,7 @@ func (s *server) checkToken(next http.Handler) http.Handler {
 			util.ErrorJSON(w, errors.New("unauthorized - invalid claimer"), http.StatusUnauthorized)
 			return
 		}
-		claimerRole, err := s.controllers.user.CheckRole(claimerId)
+		claimerRole, err := controllers.User.CheckRole(claimerId)
 		if err != nil {
 			util.ErrorJSON(w, errors.New("forbidden - invalid claimer"), http.StatusForbidden)
 			return
@@ -82,23 +74,6 @@ func (s *server) checkToken(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), "Claimer-ID", claims.Subject)
 		ctx2 := context.WithValue(ctx, "Claimer-Role", claimerRole)
 
-		s.logger.Println("Valid user:", claims.Subject)
-
 		next.ServeHTTP(w, r.WithContext(ctx2))
-	})
-}
-func (s *server) checkAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		claimerId := r.Context().Value("Claimer-ID").(string)
-		claimerRole := r.Context().Value("Claimer-Role").(string)
-
-		if claimerRole != "admin" {
-			s.logger.Println("USER TRIED TO ACCESS ADMIN OPERATION id:", claimerId)
-			util.ErrorJSON(w, errors.New("unauthorized - admin required"), http.StatusForbidden)
-			return
-		}
-
-		next.ServeHTTP(w, r)
 	})
 }
