@@ -5,8 +5,6 @@ go 1.19
 require (
 	github.com/arthurkushman/buildsqlx v0.8.5
 	github.com/gin-gonic/gin v1.8.2
-	github.com/julienschmidt/httprouter v1.3.0
-	github.com/justinas/alice v1.2.0
 	github.com/kolesa-team/go-webp v1.0.1
 	github.com/lib/pq v1.10.7
 	github.com/natefinch/lumberjack v2.0.0+incompatible
