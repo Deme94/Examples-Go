@@ -33,7 +33,6 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 	// Query parameters
 	y := ctx.Query("year")
 	predicates := psql.Predicates{}
-	predicates.WhereInsensitive("username", "=", "Demedev")
 	if len(y) != 0 {
 		startDate := fmt.Sprint(y, "-01-01")
 		endDate := fmt.Sprint(y, "-12-31")
