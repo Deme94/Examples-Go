@@ -8,31 +8,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// MAIN STRUCT
-type Attribute struct {
-	ID        primitive.ObjectID `bson:"_id, omitempty"`
-	Metadata  AttributeMetadata  `bson:"metadata"`
-	Timestamp time.Time          `bson:"timestamp"`
-	Value     float64            `bson:"value"`
-}
-type AttributeMetadata struct {
-	AssetName string `bson:"asset_name"`
-	Name      string `bson:"name"`
-	Label     string `bson:"label"`
-	Unit      string `bson:"unit"`
-}
-
-// ...
-
-// DB COLLECTION ***************************************************************
-type Model struct {
-	Coll *mongo.Collection
-}
-
-// DB QUERIES ---------------------------------------------------------------
 func (m *Model) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[string]interface{}) ([]*Attribute, error) {
 	filter := bson.D{}
 	filterDate := bson.D{}
@@ -168,5 +145,3 @@ func (m *Model) Delete(id string) error {
 
 	return err
 }
-
-// ...

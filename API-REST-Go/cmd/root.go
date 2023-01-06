@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal("\033[31m"+"CONFIGURATION SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
-		log.Println("\033[32m" + "CONFIGURATION SERVICE STARTED" + "\033[0m")
+		log.Println("\033[32m" + "CONFIGURATION SERVICE IS RUNNING" + "\033[0m")
 
 		// Logger
 		log.Println("Loading logging service...")
@@ -37,7 +37,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal("\033[31m"+"LOGGING SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
-		log.Println("\033[32m" + "LOGGING SERVICE STARTED" + "\033[0m")
+		log.Println("\033[32m" + "LOGGING SERVICE IS RUNNING" + "\033[0m")
 
 		// DB
 		log.Println("Loading database service...")
@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal("\033[31m"+"DATABASE SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
-		log.Println("\033[32m" + "DATABASE SERVICE STARTED" + "\033[0m")
+		log.Println("\033[32m" + "DATABASE SERVICE IS RUNNING" + "\033[0m")
 
 		// API-Gateway
 		log.Println("Loading api-gateway...")
@@ -71,8 +71,4 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.API-REST.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

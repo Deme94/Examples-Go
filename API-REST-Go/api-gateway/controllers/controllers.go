@@ -4,7 +4,8 @@ import (
 	"API-REST/api-gateway/controllers/asset"
 	"API-REST/api-gateway/controllers/attribute"
 	"API-REST/api-gateway/controllers/user"
-	"API-REST/services/database/models"
+	mongo "API-REST/services/database/mongo/models"
+	psql "API-REST/services/database/postgres/models"
 )
 
 var (
@@ -15,8 +16,8 @@ var (
 )
 
 func Build() {
-	User = &user.Controller{Model: models.User}
-	Asset = &asset.Controller{Model: models.Asset}
-	Attribute = &attribute.Controller{Model: models.Attribute}
+	User = &user.Controller{Model: psql.User}
+	Asset = &asset.Controller{Model: mongo.Asset}
+	Attribute = &attribute.Controller{Model: mongo.Attribute}
 	// ...
 }

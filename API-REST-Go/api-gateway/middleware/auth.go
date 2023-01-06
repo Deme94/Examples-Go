@@ -37,7 +37,7 @@ func CheckToken(ctx *gin.Context) {
 	}
 
 	token := headerParts[1]
-	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.JwtSecret))
+	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.Env.GetString("JWT_SECRET")))
 	if err != nil {
 		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		return
@@ -48,12 +48,13 @@ func CheckToken(ctx *gin.Context) {
 		return
 	}
 
-	if !claims.AcceptAudience(conf.Domain) {
+	domain := conf.Env.GetString("DOMAIN")
+	if !claims.AcceptAudience(domain) {
 		util.ErrorJSON(ctx, errors.New("unauthorized - invalid audience"), http.StatusUnauthorized)
 		return
 	}
 
-	if claims.Issuer != conf.Domain {
+	if claims.Issuer != domain {
 		util.ErrorJSON(ctx, errors.New("unauthorized - invalid issuer"), http.StatusUnauthorized)
 		return
 	}
@@ -63,15 +64,15 @@ func CheckToken(ctx *gin.Context) {
 		util.ErrorJSON(ctx, errors.New("unauthorized - invalid claimer"), http.StatusUnauthorized)
 		return
 	}
-	claimerRole, err := controllers.User.CheckRole(claimerId)
+	claimerRoles, err := controllers.User.CheckRoles(claimerId)
 	if err != nil {
 		util.ErrorJSON(ctx, errors.New("forbidden - invalid claimer"), http.StatusForbidden)
 		return
 	}
 
-	// Add claimer ID and claimer Role to header, so we know who is making this request
+	// Add claimer ID and claimer roles to header, so we know who is making this request
 	ctx.Set("Claimer-ID", claims.Subject)
-	ctx.Set("Claimer-Role", claimerRole)
+	ctx.Set("Claimer-Roles", claimerRoles)
 
 	ctx.Next()
 }

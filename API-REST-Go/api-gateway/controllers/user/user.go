@@ -7,7 +7,7 @@ import (
 	"github.com/pascaldekloe/jwt"
 
 	"API-REST/services/conf"
-	"API-REST/services/database/models/user"
+	"API-REST/services/database/postgres/models/user"
 )
 
 // CONTROLLER ***************************************************************
@@ -17,7 +17,7 @@ type Controller struct {
 
 // METHODS CONTROLLER ---------------------------------------------------------------
 func (Controller) generateJwtToken(subject string, secret string) ([]byte, error) {
-	domain := conf.Domain
+	domain := conf.Env.GetString("DOMAIN")
 	var claims jwt.Claims
 	claims.Subject = fmt.Sprint(subject)
 	claims.Issued = jwt.NewNumericTime(time.Now())
@@ -34,8 +34,14 @@ func (Controller) generateJwtToken(subject string, secret string) ([]byte, error
 	return token, nil
 }
 
-func (c *Controller) CheckRole(id int) (string, error) {
-	return c.Model.GetRole(id)
+func (c *Controller) CheckRoles(userID int) ([]string, error) {
+	user, err := c.Model.Get(userID)
+
+	var roleNames []string
+	for _, userRole := range user.Roles {
+		roleNames = append(roleNames, userRole.Name)
+	}
+	return roleNames, err
 }
 
 // ...

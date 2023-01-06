@@ -7,9 +7,6 @@ import (
 var Env *viper.Viper
 var Conf *viper.Viper
 
-var Domain string
-var JwtSecret string
-
 func Setup() error {
 	// Load environment configuration
 	Env = viper.New()
@@ -19,8 +16,6 @@ func Setup() error {
 	if err != nil {
 		return err
 	}
-	Domain = Env.GetString("DOMAIN")
-	JwtSecret = Env.GetString("JWT_SECRET")
 	// Load yaml configuration
 	Conf = viper.New()
 	Conf.SetConfigName("conf")

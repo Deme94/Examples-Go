@@ -12,13 +12,15 @@ import (
 func CheckAdmin(ctx *gin.Context) {
 
 	claimerId := ctx.GetString("Claimer-ID")
-	claimerRole := ctx.GetString("Claimer-Role")
+	claimerRoles := ctx.GetStringSlice("Claimer-Roles")
 
-	if claimerRole != "admin" {
-		logger.Logger.Println("USER TRIED TO ACCESS ADMIN OPERATION id:", claimerId)
-		util.ErrorJSON(ctx, errors.New("unauthorized - admin required"), http.StatusForbidden)
-		return
+	for _, role := range claimerRoles {
+		if role == "admin" {
+			ctx.Next()
+			return
+		}
 	}
 
-	ctx.Next()
+	logger.Logger.Println("USER TRIED TO ACCESS ADMIN OPERATION id:", claimerId)
+	util.ErrorJSON(ctx, errors.New("unauthorized - admin required"), http.StatusForbidden)
 }

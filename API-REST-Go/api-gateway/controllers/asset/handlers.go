@@ -3,7 +3,7 @@ package asset
 import (
 	"API-REST/api-gateway/controllers/asset/payloads"
 	util "API-REST/api-gateway/utilities"
-	"API-REST/services/database/models/asset"
+	"API-REST/services/database/mongo/models/asset"
 	"net/http"
 	"time"
 

@@ -1,7 +1,7 @@
 package attribute
 
 import (
-	"API-REST/services/database/models/attribute"
+	"API-REST/services/database/mongo/models/attribute"
 	"net/url"
 	"time"
 )

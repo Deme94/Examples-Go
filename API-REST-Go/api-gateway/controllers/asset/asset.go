@@ -1,7 +1,7 @@
 package asset
 
 import (
-	"API-REST/services/database/models/asset"
+	"API-REST/services/database/mongo/models/asset"
 	"net/url"
 	"time"
 )

@@ -4,7 +4,8 @@ import (
 	"API-REST/api-gateway/controllers/user/payloads"
 	util "API-REST/api-gateway/utilities"
 	"API-REST/services/conf"
-	"API-REST/services/database/models/user"
+	"API-REST/services/database/postgres/models/user"
+	psql "API-REST/services/database/postgres/predicates"
 	"API-REST/services/logger"
 	"bytes"
 	"encoding/base64"
@@ -29,21 +30,35 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 	var usrs []*user.User
 	var err error
 
-	// if query parameters
+	// Query parameters
 	y := ctx.Query("year")
+	predicates := psql.Predicates{}
+	predicates.WhereInsensitive("username", "=", "Demedev")
 	if len(y) != 0 {
-		usrs, err = c.Model.GetAllByYear(y)
-	} else {
-		usrs, err = c.Model.GetAll()
-
+		startDate := fmt.Sprint(y, "-01-01")
+		endDate := fmt.Sprint(y, "-12-31")
+		predicates.Where("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
 	}
+
+	usrs, err = c.Model.GetAll(&predicates)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	all := payloads.GetAllResponse{Users: usrs}
-	util.WriteJSON(ctx, http.StatusOK, all, "users")
+	var getAllUsers []*payloads.GetAllUserResponse
+	for _, user := range usrs {
+		getAllUsers = append(getAllUsers, &payloads.GetAllUserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+		})
+	}
+
+	all := payloads.GetAllResponse{Users: getAllUsers}
+	util.WriteJSON(ctx, http.StatusOK, all, "response")
 }
 func (c *Controller) Get(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -127,7 +142,7 @@ func (c *Controller) GetSecuredUser(ctx *gin.Context) {
 		return
 	}
 
-	if ctx.Param("Claimer-Role") == "admin" || fmt.Sprint(id) == ctx.GetString("Claimer-ID") {
+	if ctx.Param("Claimer-Roles") == "admin" || fmt.Sprint(id) == ctx.GetString("Claimer-ID") {
 		u, err := c.Model.Get(id)
 		if err != nil {
 			util.ErrorJSON(ctx, err)
@@ -157,7 +172,7 @@ func (c *Controller) GetSecuredAdmin(ctx *gin.Context) {
 	util.WriteJSON(ctx, http.StatusOK, u, "user")
 }
 func (c *Controller) Insert(ctx *gin.Context) {
-	var req payloads.LoginRequest
+	var req payloads.InsertRequest
 
 	err := ctx.BindJSON(&req)
 	if err != nil {
@@ -171,7 +186,7 @@ func (c *Controller) Insert(ctx *gin.Context) {
 		return
 	}
 
-	err = c.Model.Insert(&user.User{Name: req.Name, Email: req.Email, Password: string(hashedPassword)})
+	err = c.Model.Insert(&user.User{Username: req.Username, Email: req.Email, Password: string(hashedPassword)})
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -203,7 +218,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 
 	var u user.User
 	u.ID = id
-	u.Name = req.Name // cambiar por ruta del archivo creado
+	u.Username = req.Name // cambiar por ruta del archivo creado
 	u.Email = req.Email
 	u.Password = string(hashedPassword)
 
@@ -244,7 +259,6 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 	reader := bytes.NewReader(unbased)
 	image, err := webp.Decode(reader, &decoder.Options{})
 	if err != nil {
-		fmt.Println("HOLA3")
 		util.ErrorJSON(ctx, err)
 		return
 	}
@@ -352,14 +366,14 @@ func (c *Controller) Login(ctx *gin.Context) {
 	}
 
 	var u *user.User
-	if len(req.Email) != 0 {
+	if req.Email != "" {
 		u, err = c.Model.GetByEmailWithPassword(req.Email)
 		if err != nil {
 			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 			return
 		}
 	} else {
-		u, err = c.Model.GetByNameWithPassword(req.Name)
+		u, err = c.Model.GetByUsernameWithPassword(req.Username)
 		if err != nil {
 			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 			return
@@ -375,7 +389,7 @@ func (c *Controller) Login(ctx *gin.Context) {
 	}
 
 	// Generate jwt token after successful login
-	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.JwtSecret)
+	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.Env.GetString("JWT_SECRET"))
 	if err != nil {
 		util.ErrorJSON(ctx, err, http.StatusNotImplemented)
 		return

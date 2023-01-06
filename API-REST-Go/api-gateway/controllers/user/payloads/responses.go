@@ -1,9 +1,14 @@
 package payloads
 
-import "API-REST/services/database/models/user"
-
 type GetAllResponse struct {
-	Users []*user.User `json:"users"`
+	Users []*GetAllUserResponse `json:"users"`
+}
+type GetAllUserResponse struct {
+	ID        int    `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }
 
 type LoginResponse struct {

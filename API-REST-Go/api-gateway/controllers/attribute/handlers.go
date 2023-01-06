@@ -3,7 +3,7 @@ package attribute
 import (
 	"API-REST/api-gateway/controllers/attribute/payloads"
 	util "API-REST/api-gateway/utilities"
-	"API-REST/services/database/models/attribute"
+	"API-REST/services/database/mongo/models/attribute"
 	"net/http"
 	"time"
 
