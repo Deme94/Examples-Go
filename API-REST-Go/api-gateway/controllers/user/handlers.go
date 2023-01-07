@@ -232,6 +232,33 @@ func (c *Controller) Update(ctx *gin.Context) {
 	}
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
+func (c *Controller) UpdateRoles(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		logger.Logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	var req payloads.UpdateRolesRequest
+
+	err = ctx.BindJSON(&req)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	err = c.Model.UpdateRoles(id, req.RoleIDs...)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	ok := payloads.OkResponse{
+		OK: true,
+	}
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+}
 func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

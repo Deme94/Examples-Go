@@ -300,6 +300,31 @@ func (m *Model) UpdatePassword(id int, password string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"password": password, "last_password_change": "NOW()"})
 	return err
 }
+func (m *Model) UpdateRoles(id int, roleIDs ...int) error {
+	if len(roleIDs) == 0 {
+		return errors.New("no role id parameter was given")
+	}
+
+	return m.Db.InTransaction(func() (interface{}, error) {
+		table := m.Db.Table("users_roles")
+		// Remove all user_roles
+		_, err := table.Where("user_id", "=", id).Delete()
+		if err != nil {
+			return nil, err
+		}
+		// Add new user_roles
+		user_role := make(map[string]interface{})
+		user_role["user_id"] = id
+		for _, roleID := range roleIDs {
+			user_role["role_id"] = roleID
+			err = table.Insert(user_role)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+}
 func (m *Model) UpdatePhoto(id int, photoName string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"photo_name": photoName})
 	return err

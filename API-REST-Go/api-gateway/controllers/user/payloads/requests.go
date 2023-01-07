@@ -21,6 +21,11 @@ type UpdateRequest struct {
 	Password    string `json:"password"`
 }
 
+type UpdateRolesRequest struct {
+	ID      int   `json:"id"`
+	RoleIDs []int `json:"role_ids"`
+}
+
 type UpdatePhotoRequest struct {
 	PhotoBase64 string `json:"photo_base64"`
 }

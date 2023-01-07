@@ -58,6 +58,7 @@ func Start() error {
 	api.GET("/users/:id/photo", controllers.User.GetPhoto)
 	api.GET("/users/:id/cv", controllers.User.GetCV)
 	api.PUT("/users/:id", controllers.User.Update)
+	api.PUT("/users/:id/roles", controllers.User.UpdateRoles)
 	api.PUT("/users/:id/photo", controllers.User.UpdatePhoto)
 	api.PUT("/users/:id/cv", controllers.User.UpdateCV)
 	api.DELETE("/users/:id", controllers.User.Delete)
