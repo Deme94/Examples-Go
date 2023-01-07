@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// MAIN STRUCT
 type User struct {
 	ID        int       `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
