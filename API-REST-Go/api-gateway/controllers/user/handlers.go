@@ -45,9 +45,9 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 		return
 	}
 
-	var getAllUsers []*payloads.GetAllUserResponse
+	var all []*payloads.GetResponse
 	for _, user := range usrs {
-		getAllUsers = append(getAllUsers, &payloads.GetAllUserResponse{
+		all = append(all, &payloads.GetResponse{
 			ID:        user.ID,
 			Username:  user.Username,
 			Email:     user.Email,
@@ -56,8 +56,8 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 		})
 	}
 
-	all := payloads.GetAllResponse{Users: getAllUsers}
-	util.WriteJSON(ctx, http.StatusOK, all, "response")
+	allResponse := payloads.GetAllResponse{Users: all}
+	util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
 }
 func (c *Controller) Get(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))

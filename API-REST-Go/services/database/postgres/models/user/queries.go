@@ -16,7 +16,9 @@ func (m *Model) GetAll(p *predicates.Predicates) ([]*User, error) {
 		"first_name",
 		"last_name",
 	)
-	query = predicates.Apply(query, p)
+	if p != nil {
+		query = predicates.Apply(query, p)
+	}
 	res, err := query.Get()
 	if err != nil {
 		return nil, err
@@ -163,12 +165,11 @@ func (m *Model) Get(id int) (*User, error) {
 		Address:            address,
 		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
-		//Roles:              roleNames,
-		VerifiedMail:  r["verified_mail"].(bool),
-		VerifiedPhone: r["verified_phone"].(bool),
-		BanDate:       banDate,
-		BanExpire:     banExpire,
-		Roles:         roles,
+		VerifiedMail:       r["verified_mail"].(bool),
+		VerifiedPhone:      r["verified_phone"].(bool),
+		BanDate:            banDate,
+		BanExpire:          banExpire,
+		Roles:              roles,
 	}
 
 	return &u, nil
@@ -266,21 +267,17 @@ func (m *Model) GetCV(id int) (string, error) {
 	return res[0]["cv_name"].(string), nil
 }
 func (m *Model) Insert(u *User) error {
-	email := strings.ToLower(u.Email)
-
 	nick := u.Nick
 	if u.Nick == "" {
 		nick = u.Username
 	}
 
-	data := map[string]interface{}{
+	err := m.Db.Table("users").Insert(map[string]interface{}{
 		"username": u.Username,
-		"email":    email,
+		"email":    strings.ToLower(u.Email),
 		"password": u.Password,
 		"nick":     nick,
-	}
-
-	err := m.Db.Table("users").Insert(data)
+	})
 	if err != nil {
 		return err
 	}

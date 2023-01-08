@@ -1,9 +1,9 @@
 package payloads
 
 type GetAllResponse struct {
-	Users []*GetAllUserResponse `json:"users"`
+	Users []*GetResponse `json:"users"`
 }
-type GetAllUserResponse struct {
+type GetResponse struct {
 	ID        int    `json:"id"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`

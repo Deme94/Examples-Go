@@ -10,7 +10,6 @@ import (
 	"API-REST/services/database/postgres/models/user"
 )
 
-// CONTROLLER ***************************************************************
 type Controller struct {
 	Model *user.Model
 }

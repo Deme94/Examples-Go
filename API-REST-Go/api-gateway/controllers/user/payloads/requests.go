@@ -22,12 +22,11 @@ type UpdateRequest struct {
 }
 
 type UpdateRolesRequest struct {
-	ID      int   `json:"id"`
-	RoleIDs []int `json:"role_ids"`
+	RoleIDs []int `json:"role_ids" binding:"required"`
 }
 
 type UpdatePhotoRequest struct {
-	PhotoBase64 string `json:"photo_base64"`
+	PhotoBase64 string `json:"photo_base64" binding:"required"`
 }
 
 type UpdateCVRequest struct {
