@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// CONTROLLER ***************************************************************
 type Controller struct {
 	Model *asset.Model
 }

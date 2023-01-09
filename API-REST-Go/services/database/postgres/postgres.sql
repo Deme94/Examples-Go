@@ -41,8 +41,8 @@ CREATE TABLE roles (
 -- Permissions
 CREATE TABLE permissions (
    id serial PRIMARY KEY,
-   resource VARCHAR (50) UNIQUE NOT NULL,
-   operation VARCHAR (50) UNIQUE NOT NULL,
+   resource VARCHAR (50) NOT NULL,
+   operation VARCHAR (50) NOT NULL,
    UNIQUE (resource, operation)
 );
 

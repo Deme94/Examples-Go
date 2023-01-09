@@ -3,6 +3,7 @@ package controllers
 import (
 	"API-REST/api-gateway/controllers/asset"
 	"API-REST/api-gateway/controllers/attribute"
+	"API-REST/api-gateway/controllers/auth"
 	"API-REST/api-gateway/controllers/permission"
 	"API-REST/api-gateway/controllers/role"
 	"API-REST/api-gateway/controllers/user"
@@ -11,6 +12,7 @@ import (
 )
 
 var (
+	Auth       *auth.Controller
 	User       *user.Controller
 	Role       *role.Controller
 	Permission *permission.Controller
@@ -20,6 +22,7 @@ var (
 )
 
 func Build() {
+	Auth = &auth.Controller{Model: psql.User}
 	User = &user.Controller{Model: psql.User}
 	Role = &role.Controller{Model: psql.Role}
 	Permission = &permission.Controller{Model: psql.Permission}

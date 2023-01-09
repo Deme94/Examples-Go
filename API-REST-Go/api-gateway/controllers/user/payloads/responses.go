@@ -12,7 +12,7 @@ type GetResponse struct {
 }
 
 type LoginResponse struct {
-	Id    int    `json:"user_id"`
+	ID    int    `json:"user_id"`
 	Token string `json:"token"`
 }
 

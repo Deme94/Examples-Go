@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"API-REST/api-gateway/controllers"
 	util "API-REST/api-gateway/utilities"
 	"API-REST/services/logger"
 	"errors"
@@ -9,18 +10,38 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CheckAdmin(ctx *gin.Context) {
+func CheckPermission(resource string, operation string) gin.HandlerFunc {
 
-	claimerId := ctx.GetString("Claimer-ID")
-	claimerRoles := ctx.GetStringSlice("Claimer-Roles")
-
-	for _, role := range claimerRoles {
-		if role == "admin" {
-			ctx.Next()
+	return func(ctx *gin.Context) {
+		claimerID := ctx.GetInt("Claimer-ID")
+		claimerRoles, err := controllers.Auth.GetRoles(claimerID)
+		if err != nil {
+			util.ErrorJSON(ctx, err, http.StatusForbidden)
+			ctx.Abort()
 			return
 		}
-	}
 
-	logger.Logger.Println("USER TRIED TO ACCESS ADMIN OPERATION id:", claimerId)
-	util.ErrorJSON(ctx, errors.New("unauthorized - admin required"), http.StatusForbidden)
+		for _, role := range claimerRoles {
+			if role == "admin" {
+				ctx.Next()
+				return
+			}
+		}
+
+		hasPerm, err := controllers.Auth.HasPermission(claimerID, resource, operation)
+		if err != nil {
+			util.ErrorJSON(ctx, err, http.StatusForbidden)
+			ctx.Abort()
+			return
+		}
+
+		if !hasPerm {
+			logger.Logger.Println("USER TRIED TO ACCESS RESTRINGED OPERATION id:", claimerID)
+			util.ErrorJSON(ctx, errors.New("forbidden operation - user has not permission"), http.StatusForbidden)
+			ctx.Abort()
+			return
+		}
+
+		ctx.Next()
+	}
 }

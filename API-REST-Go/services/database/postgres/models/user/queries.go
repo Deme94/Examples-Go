@@ -1,9 +1,11 @@
 package user
 
 import (
+	"API-REST/services/database/postgres/models/permission"
 	"API-REST/services/database/postgres/models/role"
 	"API-REST/services/database/postgres/predicates"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -235,6 +237,33 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	}
 
 	return &u, nil
+}
+func (m *Model) HasPermission(id int, p *permission.Permission) (bool, error) {
+	fmt.Println(p.Resource, p.Operation)
+	res, err := m.Db.Table("users").Select(
+		"permissions.id as permission_id",
+		"permissions.resource as permission_resource",
+		"permissions.operation as permission_operation",
+	).
+		Where("users.id", "=", id).
+		AndWhere("permissions.resource", "=", p.Resource).
+		AndWhere("permissions.operation", "=", p.Operation).
+		LeftJoin("users_roles", "users.id", "=", "users_roles.user_id").
+		LeftJoin("roles", "users_roles.role_id", "=", "roles.id").
+		LeftJoin("roles_permissions", "roles.id", "=", "roles_permissions.role_id").
+		LeftJoin("permissions", "roles_permissions.permission_id", "=", "permissions.id").
+		Get()
+	if err != nil {
+		return false, err
+	}
+	if len(res) == 0 {
+		return false, nil
+	}
+
+	fmt.Println(id)
+	fmt.Println(res[0]["permission_resource"])
+	fmt.Println(res[0]["permission_operation"])
+	return true, nil
 }
 func (m *Model) GetPhoto(id int) (string, error) {
 	res, err := m.Db.Table("users").Select("photo_name").Where("id", "=", id).Get()

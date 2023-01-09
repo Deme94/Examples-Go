@@ -1,10 +1,10 @@
-package user
+package auth
 
 import (
-	"API-REST/api-gateway/controllers/user/payloads"
+	"API-REST/api-gateway/controllers/auth/payloads"
 	util "API-REST/api-gateway/utilities"
+	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/user"
-	psql "API-REST/services/database/postgres/predicates"
 	"API-REST/services/logger"
 	"bytes"
 	"encoding/base64"
@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kolesa-team/go-webp/decoder"
@@ -24,65 +23,78 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (c *Controller) GetAll(ctx *gin.Context) {
+func (c *Controller) Login(ctx *gin.Context) {
+	var req payloads.LoginRequest
 
-	var usrs []*user.User
-	var err error
-
-	// Query parameters
-	y := ctx.Query("year")
-	predicates := psql.Predicates{}
-	if len(y) != 0 {
-		startDate := fmt.Sprint(y, "-01-01")
-		endDate := fmt.Sprint(y, "-12-31")
-		predicates.Where("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
-	}
-
-	usrs, err = c.Model.GetAll(&predicates)
+	err := ctx.BindJSON(&req)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	var all []*payloads.GetResponse
-	for _, user := range usrs {
-		all = append(all, &payloads.GetResponse{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-		})
+	var u *user.User
+	if req.Email != "" {
+		u, err = c.Model.GetByEmailWithPassword(req.Email)
+		if err != nil {
+			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
+			return
+		}
+	} else {
+		u, err = c.Model.GetByUsernameWithPassword(req.Username)
+		if err != nil {
+			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
+			return
+		}
 	}
 
-	allResponse := payloads.GetAllResponse{Users: all}
-	util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
+	hashedPassword := u.Password
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password))
+	if err != nil {
+		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
+		return
+	}
+
+	// Generate jwt token after successful login
+	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.Env.GetString("JWT_SECRET"))
+	if err != nil {
+		util.ErrorJSON(ctx, err, http.StatusNotImplemented)
+		return
+	}
+
+	util.WriteJSON(ctx, http.StatusOK, payloads.LoginResponse{ID: u.ID, Token: string(token)}, "response")
 }
+
 func (c *Controller) Get(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
-	u, err := c.Model.Get(id)
+	u, err := c.Model.Get(claimerID)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, u, "user")
+	userResponse := payloads.GetResponse{
+		ID:                 u.ID,
+		CreatedAt:          u.CreatedAt,
+		Username:           u.Username,
+		Email:              u.Email,
+		Nick:               u.Nick,
+		FirstName:          u.FirstName,
+		LastName:           u.LastName,
+		Phone:              u.Phone,
+		Address:            u.Address,
+		LastPasswordChange: u.LastPasswordChange,
+		VerifiedMail:       u.VerifiedMail,
+		VerifiedPhone:      u.VerifiedPhone,
+	}
+
+	util.WriteJSON(ctx, http.StatusOK, userResponse, "user")
 }
 func (c *Controller) GetPhoto(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
-	imageName, err := c.Model.GetPhoto(id)
+	imageName, err := c.Model.GetPhoto(claimerID)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -114,14 +126,9 @@ func (c *Controller) GetPhoto(ctx *gin.Context) {
 	util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
 }
 func (c *Controller) GetCV(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
-	cvName, err := c.Model.GetCV(id)
+	cvName, err := c.Model.GetCV(claimerID)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -130,8 +137,10 @@ func (c *Controller) GetCV(ctx *gin.Context) {
 	filePath := "./storage/users/" + cvName + ".pdf"
 	ctx.File(filePath)
 }
-func (c *Controller) Insert(ctx *gin.Context) {
-	var req payloads.InsertRequest
+func (c *Controller) Update(ctx *gin.Context) {
+	claimerID := ctx.GetInt("Claimer-ID")
+
+	var req payloads.UpdateRequest
 
 	err := ctx.BindJSON(&req)
 	if err != nil {
@@ -145,38 +154,8 @@ func (c *Controller) Insert(ctx *gin.Context) {
 		return
 	}
 
-	err = c.Model.Insert(&user.User{Username: req.Username, Email: req.Email, Password: string(hashedPassword)})
-	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
-	}
-
-	util.WriteJSON(ctx, http.StatusOK, "user created successfully", "response")
-}
-func (c *Controller) Update(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
-
-	var req payloads.UpdateRequest
-
-	err = ctx.BindJSON(&req)
-	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
-	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
-	}
-
 	var u user.User
-	u.ID = id
+	u.ID = claimerID
 	u.Username = req.Name // cambiar por ruta del archivo creado
 	u.Email = req.Email
 	u.Password = string(hashedPassword)
@@ -193,22 +172,17 @@ func (c *Controller) Update(ctx *gin.Context) {
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
 func (c *Controller) UpdateRoles(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
 	var req payloads.UpdateRolesRequest
 
-	err = ctx.BindJSON(&req)
+	err := ctx.BindJSON(&req)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	err = c.Model.UpdateRoles(id, req.RoleIDs...)
+	err = c.Model.UpdateRoles(claimerID, req.RoleIDs...)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -220,16 +194,11 @@ func (c *Controller) UpdateRoles(ctx *gin.Context) {
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
 func (c *Controller) UpdatePhoto(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
 	var req payloads.UpdatePhotoRequest
 
-	err = ctx.BindJSON(&req)
+	err := ctx.BindJSON(&req)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -249,7 +218,7 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 		return
 	}
 	// Create our own file
-	imageName := "user" + fmt.Sprint(id)
+	imageName := "user" + fmt.Sprint(claimerID)
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
@@ -264,7 +233,7 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 	webp.Encode(f, image, options)
 	logger.Logger.Println("user's photo saved")
 
-	err = c.Model.UpdatePhoto(id, imageName)
+	err = c.Model.UpdatePhoto(claimerID, imageName)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -276,16 +245,11 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
 func (c *Controller) UpdateCV(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
 	// Retrieve the file
 	var req payloads.UpdateCVRequest
-	err = ctx.ShouldBind(&req)
+	err := ctx.ShouldBind(&req)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -303,7 +267,7 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 		util.ErrorJSON(ctx, err)
 	}
 	// Create our own file
-	fileName := "usercv" + fmt.Sprint(id)
+	fileName := "usercv" + fmt.Sprint(claimerID)
 	f, err := os.OpenFile("./storage/users/"+fileName+".pdf", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
@@ -315,7 +279,7 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", req.File.Filename, req.File.Size)
 
 	// Save fileName in DB
-	c.Model.UpdateCV(id, fileName)
+	c.Model.UpdateCV(claimerID, fileName)
 
 	ok := payloads.OkResponse{
 		OK: true,
@@ -323,14 +287,9 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
 func (c *Controller) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
-	}
+	claimerID := ctx.GetInt("Claimer-ID")
 
-	err = c.Model.Delete(id)
+	err := c.Model.Delete(claimerID)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
