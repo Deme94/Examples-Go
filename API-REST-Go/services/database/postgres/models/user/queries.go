@@ -5,7 +5,6 @@ import (
 	"API-REST/services/database/postgres/models/role"
 	"API-REST/services/database/postgres/predicates"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 )
@@ -145,10 +144,10 @@ func (m *Model) Get(id int) (*User, error) {
 	// Relations
 	var roles []*role.Role
 	if res[0]["role_id"] != nil {
-		for i, _ := range res {
+		for _, row := range res {
 			roles = append(roles, &role.Role{
-				ID:   int(res[i]["role_id"].(int64)),
-				Name: res[i]["role_name"].(string),
+				ID:   int(row["role_id"].(int64)),
+				Name: row["role_name"].(string),
 			})
 		}
 	}
@@ -239,7 +238,6 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	return &u, nil
 }
 func (m *Model) HasPermission(id int, p *permission.Permission) (bool, error) {
-	fmt.Println(p.Resource, p.Operation)
 	res, err := m.Db.Table("users").Select(
 		"permissions.id as permission_id",
 		"permissions.resource as permission_resource",
@@ -260,9 +258,6 @@ func (m *Model) HasPermission(id int, p *permission.Permission) (bool, error) {
 		return false, nil
 	}
 
-	fmt.Println(id)
-	fmt.Println(res[0]["permission_resource"])
-	fmt.Println(res[0]["permission_operation"])
 	return true, nil
 }
 func (m *Model) GetPhoto(id int) (string, error) {

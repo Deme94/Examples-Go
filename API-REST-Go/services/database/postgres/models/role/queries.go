@@ -58,11 +58,11 @@ func (m *Model) Get(id int) (*Role, error) {
 	// Relations
 	var permissions []*permission.Permission
 	if res[0]["permission_id"] != nil {
-		for i, _ := range res {
+		for _, row := range res {
 			permissions = append(permissions, &permission.Permission{
-				ID:        int(res[i]["permission_id"].(int64)),
-				Resource:  res[i]["permission_resource"].(string),
-				Operation: res[i]["permission_operation"].(string),
+				ID:        int(row["permission_id"].(int64)),
+				Resource:  row["permission_resource"].(string),
+				Operation: row["permission_operation"].(string),
 			})
 		}
 	}
