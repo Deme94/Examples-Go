@@ -70,7 +70,7 @@ func Start() error {
 	apiAuth.GET("/roles", middleware.CheckPermission("roles", "read"), controllers.Role.GetAll)
 	apiAuth.GET("/roles/:id", middleware.CheckPermission("roles", "read"), controllers.Role.Get)
 	apiAuth.POST("/roles", middleware.CheckPermission("roles", "create"), controllers.Role.Insert)
-	apiAuth.POST("/roles/:id/permissions", middleware.CheckPermission("roles", "update"), controllers.Role.UpdatePermissions)
+	apiAuth.POST("/roles/:id/permissions", middleware.CheckPermission("roles", "assign"), controllers.Role.UpdatePermissions)
 	apiAuth.PUT("/roles/:id", middleware.CheckPermission("roles", "update"), controllers.Role.Update)
 	apiAuth.DELETE("/roles/:id", middleware.CheckPermission("roles", "delete"), controllers.Role.Delete)
 

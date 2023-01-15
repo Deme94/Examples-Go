@@ -58,6 +58,9 @@ func (p *Predicates) OrWhereInsensitive(columnName string, operator string, valu
 	p.wheres = append(p.wheres, &where{or: true, columnName: columnName, operator: operator, value: value})
 	return p
 }
+func (p *Predicates) HasWhere() bool {
+	return len(p.wheres) > 0
+}
 
 // GroupBy
 func (p *Predicates) GroupBy(columnName string) *Predicates {

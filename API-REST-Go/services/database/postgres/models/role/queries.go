@@ -12,9 +12,13 @@ func (m *Model) GetAll(p *predicates.Predicates) ([]*Role, error) {
 		"id",
 		"name",
 	)
-	if p != nil {
-		query = predicates.Apply(query, p)
+	query = predicates.Apply(query, p)
+	if p.HasWhere() {
+		query = query.AndWhere("roles.name", "!=", "admin")
+	} else {
+		query = query.Where("roles.name", "!=", "admin")
 	}
+
 	res, err := query.Get()
 	if err != nil {
 		return nil, err
@@ -42,7 +46,7 @@ func (m *Model) Get(id int) (*Role, error) {
 		"permissions.id as permission_id",
 		"permissions.resource as permission_resource",
 		"permissions.operation as permission_operation",
-	).Where("roles.id", "=", id).
+	).Where("roles.id", "=", id).AndWhere("roles.name", "!=", "admin").
 		LeftJoin("roles_permissions", "roles.id", "=", "roles_permissions.role_id").
 		LeftJoin("permissions", "roles_permissions.permission_id", "=", "permissions.id").
 		Get()
@@ -85,9 +89,10 @@ func (m *Model) Insert(r *Role) error {
 	return nil
 }
 func (m *Model) Update(r *Role) error {
-	_, err := m.Db.Table("roles").Where("id", "=", r.ID).Update(map[string]interface{}{
-		"name": strings.ToLower(r.Name),
-	})
+	_, err := m.Db.Table("roles").Where("id", "=", r.ID).AndWhere("roles.name", "!=", "admin").
+		Update(map[string]interface{}{
+			"name": strings.ToLower(r.Name),
+		})
 	return err
 }
 func (m *Model) UpdatePermissions(id int, permissionIDs ...int) error {
@@ -98,7 +103,7 @@ func (m *Model) UpdatePermissions(id int, permissionIDs ...int) error {
 	return m.Db.InTransaction(func() (interface{}, error) {
 		table := m.Db.Table("roles_permissions")
 		// Remove all role_permissions
-		_, err := table.Where("role_id", "=", id).Delete()
+		_, err := table.Where("role_id", "=", id).AndWhere("roles.name", "!=", "admin").Delete()
 		if err != nil {
 			return nil, err
 		}
@@ -116,6 +121,7 @@ func (m *Model) UpdatePermissions(id int, permissionIDs ...int) error {
 	})
 }
 func (m *Model) Delete(id int) error {
-	_, err := m.Db.Table("roles").Where("id", "=", id).Delete()
+	_, err := m.Db.Table("roles").Where("id", "=", id).AndWhere("roles.name", "!=", "admin").
+		Delete()
 	return err
 }
