@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"API-REST/api-gateway/controllers/auth/payloads"
+	"API-REST/api-gateway/controllers/user/auth/payloads"
 	util "API-REST/api-gateway/utilities"
 	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/user"
