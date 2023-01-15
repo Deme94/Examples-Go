@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -65,7 +65,7 @@ func createDBTables() error {
 	dir := path.Dir(filename)
 	path := dir + "/" + "postgres.sql"
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
