@@ -5,3 +5,22 @@ maxMultiPartMemory: 1048576 # bytes (1024 * 1024)
 logDir: "./logs"
 logFileName: "log"
 logFileExt: "txt"
+# DB
+permissions:
+  users: [read, assign, update, delete]
+  roles: [read, create, assign, update, delete]
+  permissions: [read, create, update, delete]
+  assets: [read, create, update, delete]
+  attributes: [read, create, update, delete]
+roles: # admin is created by default and it has all permissions
+  manager:
+    users: [read, assign, update, delete]
+    roles: [read, create, assign, update, delete]
+    permissions: [read, create, update, delete]
+    assets: [read, create, update, delete]
+    attributes: [read, create, update, delete]
+  asset-manager:
+    assets: [read, create, update, delete]
+    attributes: [read, create, update, delete]
+  HR:
+    users: [read]

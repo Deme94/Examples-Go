@@ -28,6 +28,7 @@ CREATE TABLE users (
     ban_date TIMESTAMP,
     ban_expire TIMESTAMP,
 
+    -- Extra fields
     photo_name VARCHAR ( 50 ) UNIQUE,
     cv_name VARCHAR ( 50 ) UNIQUE
 );
@@ -37,6 +38,7 @@ CREATE TABLE roles (
    id serial PRIMARY KEY,
    name VARCHAR (50) UNIQUE NOT NULL
 );
+INSERT INTO roles (name) VALUES ('admin'); -- Insert admin as default role
 
 -- Permissions
 CREATE TABLE permissions (
