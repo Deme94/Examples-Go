@@ -14,7 +14,7 @@ func CheckPermission(resource string, operation string) gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 		claimerID := ctx.GetInt("Claimer-ID")
-		claimerRoles, err := controllers.Auth.GetRoles(claimerID)
+		claimerRoles, err := controllers.User.Auth.GetRoles(claimerID)
 		if err != nil {
 			util.ErrorJSON(ctx, err, http.StatusForbidden)
 			ctx.Abort()
@@ -28,7 +28,7 @@ func CheckPermission(resource string, operation string) gin.HandlerFunc {
 			}
 		}
 
-		hasPerm, err := controllers.Auth.HasPermission(claimerID, resource, operation)
+		hasPerm, err := controllers.User.Auth.HasPermission(claimerID, resource, operation)
 		if err != nil {
 			util.ErrorJSON(ctx, err, http.StatusForbidden)
 			ctx.Abort()
