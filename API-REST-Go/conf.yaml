@@ -12,7 +12,7 @@ permissions:
   permissions: [read, create, update, delete]
   assets: [read, create, update, delete]
   attributes: [read, create, update, delete]
-roles: # admin is created by default and it has all permissions
+roles: # first user created is admin
   manager:
     users: [read, assign, update, delete]
     roles: [read, create, assign, update, delete]

@@ -5,6 +5,7 @@ import (
 	"API-REST/services/database/postgres/models/role"
 	"API-REST/services/database/postgres/predicates"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -296,16 +297,54 @@ func (m *Model) Insert(u *User) error {
 		nick = u.Username
 	}
 
-	err := m.Db.Table("users").Insert(map[string]interface{}{
-		"username": u.Username,
-		"email":    strings.ToLower(u.Email),
-		"password": u.Password,
-		"nick":     nick,
-	})
+	// Begin transaction
+	tx, err := m.Db.Sql().Begin()
 	if err != nil {
 		return err
 	}
-	return nil
+	defer tx.Rollback()
+
+	// Insert user
+	_, err = tx.Exec("INSERT INTO users (username, email, password, nick) VALUES " +
+		"('" + u.Username + "', '" + strings.ToLower(u.Email) + "', '" + u.Password +
+		"', '" + nick + "');")
+	if err != nil {
+		return err
+	}
+
+	// Check first user created
+	var count int
+	row := tx.QueryRow("SELECT COUNT(*) FROM users")
+	err = row.Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 1 {
+		// get last inserted user id
+		var userID int
+		row := tx.QueryRow("SELECT id FROM users LIMIT 1")
+		err = row.Scan(&userID)
+		if err != nil {
+			return err
+		}
+
+		// get admin role id
+		var adminID int
+		row = tx.QueryRow("SELECT id FROM roles WHERE name = 'admin';")
+		err = row.Scan(&adminID)
+		if err != nil {
+			return err
+		}
+
+		// Assign role to user (insert users_roles)
+		_, err = tx.Exec("INSERT INTO users_roles (user_id, role_id) VALUES " +
+			"(" + fmt.Sprint(userID) + ", " + fmt.Sprint(adminID) + ");")
+		if err != nil {
+			return err
+		}
+	}
+	// Commit
+	return tx.Commit()
 }
 func (m *Model) Update(u *User) error {
 	_, err := m.Db.Table("users").Where("id", "=", u.ID).Update(map[string]interface{}{
@@ -326,25 +365,33 @@ func (m *Model) UpdateRoles(id int, roleIDs ...int) error {
 		return errors.New("no role id parameter was given")
 	}
 
-	return m.Db.InTransaction(func() (interface{}, error) {
-		table := m.Db.Table("users_roles")
-		// Remove all user_roles
-		_, err := table.Where("user_id", "=", id).Delete()
-		if err != nil {
-			return nil, err
-		}
-		// Add new user_roles
-		user_role := make(map[string]interface{})
-		user_role["user_id"] = id
-		for _, roleID := range roleIDs {
-			user_role["role_id"] = roleID
-			err = table.Insert(user_role)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return nil, nil
-	})
+	// Begin transaction
+	tx, err := m.Db.Sql().Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Clear user roles
+	_, err = tx.Exec("DELETE from users_roles WHERE user_id = " + fmt.Sprint(id) + ";")
+	if err != nil {
+		return err
+	}
+
+	// Assign roles to user (insert users_roles)
+	values := ""
+	for _, roleID := range roleIDs {
+		values += "(" + fmt.Sprint(id) + ", " + fmt.Sprint(roleID) + "),"
+	}
+	values = strings.TrimSuffix(values, ",")
+
+	_, err = tx.Exec("INSERT INTO users_roles (user_id, role_id) VALUES " + values + ";")
+	if err != nil {
+		return err
+	}
+
+	// Commit
+	return tx.Commit()
 }
 func (m *Model) UpdatePhoto(id int, photoName string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"photo_name": photoName})
