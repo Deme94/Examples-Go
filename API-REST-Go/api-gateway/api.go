@@ -66,6 +66,7 @@ func Start() error {
 	apiAuth.PUT("/users/:id/photo", middleware.CheckPermission("users", "update"), controllers.User.UpdatePhoto)
 	apiAuth.PUT("/users/:id/cv", middleware.CheckPermission("users", "update"), controllers.User.UpdateCV)
 	apiAuth.DELETE("/users/:id", middleware.CheckPermission("users", "delete"), controllers.User.Delete)
+	apiAuth.PUT("/users/:id/restore", middleware.CheckPermission("users", "delete"), controllers.User.Restore)
 
 	apiAuth.GET("/roles", middleware.CheckPermission("roles", "read"), controllers.Role.GetAll)
 	apiAuth.GET("/roles/:id", middleware.CheckPermission("roles", "read"), controllers.Role.Get)

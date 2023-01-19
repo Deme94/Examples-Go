@@ -341,6 +341,25 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 	}
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
+func (c *Controller) Restore(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		logger.Logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	err = c.Model.Restore(id)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	ok := payloads.OkResponse{
+		OK: true,
+	}
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+}
 func (c *Controller) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

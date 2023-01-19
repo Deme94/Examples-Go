@@ -204,11 +204,16 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 	if ll != nil {
 		lastLogin = ll.(time.Time)
 	}
+	deletedAt := time.Time{}
+	da := r["deleted_at"]
+	if da != nil {
+		deletedAt = da.(time.Time)
+	}
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
 		CreatedAt:          r["created_at"].(time.Time),
-		DeletedAt:          r["deleted_at"].(time.Time),
+		DeletedAt:          deletedAt,
 		Username:           r["username"].(string),
 		Email:              email,
 		Password:           r["password"].(string),
@@ -240,17 +245,22 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	}
 	r := res[0]
 
-	// Atributes can be nil
+	// Check if nil values
 	lastLogin := time.Time{}
 	ll := r["last_login"]
 	if ll != nil {
 		lastLogin = ll.(time.Time)
 	}
+	deletedAt := time.Time{}
+	da := r["deleted_at"]
+	if da != nil {
+		deletedAt = da.(time.Time)
+	}
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
 		CreatedAt:          r["created_at"].(time.Time),
-		DeletedAt:          r["deleted_at"].(time.Time),
+		DeletedAt:          deletedAt,
 		Username:           username,
 		Email:              r["email"].(string),
 		Password:           r["password"].(string),
@@ -421,6 +431,10 @@ func (m *Model) UpdatePhoto(id int, photoName string) error {
 }
 func (m *Model) UpdateCV(id int, cvName string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"cv_name": cvName})
+	return err
+}
+func (m *Model) Restore(id int) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"deleted_at": nil})
 	return err
 }
 func (m *Model) Delete(id int) error {
