@@ -1,5 +1,5 @@
 package payloads
 
 type AssetNameResponse struct {
-	Name string `bson:"name"`
+	Name string `json:"name"`
 }
