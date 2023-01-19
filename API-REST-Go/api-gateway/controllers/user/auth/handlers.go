@@ -47,6 +47,11 @@ func (c *Controller) Login(ctx *gin.Context) {
 		}
 	}
 
+	if !u.DeletedAt.IsZero() {
+		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
+		return
+	}
+
 	hashedPassword := u.Password
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password))

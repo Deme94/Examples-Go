@@ -31,11 +31,30 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 
 	// Query parameters
 	y := ctx.Query("year")
+	d := ctx.Query("deleted")
 	predicates := psql.Predicates{}
 	if len(y) != 0 {
 		startDate := fmt.Sprint(y, "-01-01")
 		endDate := fmt.Sprint(y, "-12-31")
 		predicates.Where("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
+	}
+	if len(d) != 0 {
+		deleted, err := strconv.ParseBool(d)
+		if err == nil {
+			if predicates.HasWhere() {
+				if deleted {
+					predicates.AndWhereNotNull("deleted_at")
+				} else {
+					predicates.AndWhereNull("deleted_at")
+				}
+			} else {
+				if deleted {
+					predicates.WhereNotNull("deleted_at")
+				} else {
+					predicates.WhereNull("deleted_at")
+				}
+			}
+		}
 	}
 
 	usrs, err = c.Model.GetAll(&predicates)

@@ -32,12 +32,36 @@ func (p *Predicates) Where(columnName string, operator string, value interface{}
 	p.wheres = append(p.wheres, &where{columnName: columnName, operator: operator, value: value})
 	return p
 }
+func (p *Predicates) WhereNull(columnName string) *Predicates {
+	p.wheres = append(p.wheres, &where{columnName: columnName, value: "NULL"})
+	return p
+}
+func (p *Predicates) WhereNotNull(columnName string) *Predicates {
+	p.wheres = append(p.wheres, &where{columnName: columnName, value: "NOT NULL"})
+	return p
+}
 func (p *Predicates) AndWhere(columnName string, operator string, value interface{}) *Predicates {
 	p.wheres = append(p.wheres, &where{and: true, columnName: columnName, operator: operator, value: value})
 	return p
 }
+func (p *Predicates) AndWhereNull(columnName string) *Predicates {
+	p.wheres = append(p.wheres, &where{and: true, columnName: columnName, value: "NULL"})
+	return p
+}
+func (p *Predicates) AndWhereNotNull(columnName string) *Predicates {
+	p.wheres = append(p.wheres, &where{and: true, columnName: columnName, value: "NOT NULL"})
+	return p
+}
 func (p *Predicates) OrWhere(columnName string, operator string, value interface{}) *Predicates {
 	p.wheres = append(p.wheres, &where{or: true, columnName: columnName, operator: operator, value: value})
+	return p
+}
+func (p *Predicates) OrWhereNull(columnName string) *Predicates {
+	p.wheres = append(p.wheres, &where{or: true, columnName: columnName, value: "NULL"})
+	return p
+}
+func (p *Predicates) OrWhereNotNull(columnName string) *Predicates {
+	p.wheres = append(p.wheres, &where{or: true, columnName: columnName, value: "NOT NULL"})
 	return p
 }
 func (p *Predicates) WhereInsensitive(columnName string, operator string, value interface{}) *Predicates {
@@ -89,11 +113,29 @@ func (p *Predicates) Offset(offset int) *Predicates {
 func Apply(query *buildsqlx.DB, p *Predicates) *buildsqlx.DB {
 	for _, where := range p.wheres {
 		if where.and {
-			query = query.AndWhere(where.columnName, where.operator, where.value)
+			if where.value == "NULL" {
+				query = query.AndWhereNull(where.columnName)
+			} else if where.value == "NOT NULL" {
+				query = query.AndWhereNotNull(where.columnName)
+			} else {
+				query = query.AndWhere(where.columnName, where.operator, where.value)
+			}
 		} else if where.or {
-			query = query.OrWhere(where.columnName, where.operator, where.value)
+			if where.value == "NULL" {
+				query = query.OrWhereNull(where.columnName)
+			} else if where.value == "NOT NULL" {
+				query = query.OrWhereNotNull(where.columnName)
+			} else {
+				query = query.OrWhere(where.columnName, where.operator, where.value)
+			}
 		} else {
-			query = query.Where(where.columnName, where.operator, where.value)
+			if where.value == "NULL" {
+				query = query.WhereNull(where.columnName)
+			} else if where.value == "NOT NULL" {
+				query = query.WhereNotNull(where.columnName)
+			} else {
+				query = query.Where(where.columnName, where.operator, where.value)
+			}
 		}
 	}
 	if p.groupBy != "" {
