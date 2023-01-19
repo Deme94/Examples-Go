@@ -48,7 +48,7 @@ func (c *Controller) Login(ctx *gin.Context) {
 	}
 
 	if !u.DeletedAt.IsZero() {
-		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
+		util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
 		return
 	}
 

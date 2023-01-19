@@ -179,7 +179,17 @@ func (m *Model) Get(id int) (*User, error) {
 func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 	email = strings.ToLower(email)
 
-	res, err := m.Db.Table("users").Select("id", "created_at", "username", "password", "last_login", "last_password_change").Where("email", "=", email).Get()
+	res, err := m.Db.Table("users").Select(
+		"id",
+		"created_at",
+		"deleted_at",
+		"username",
+		"password",
+		"last_login",
+		"last_password_change",
+	).
+		Where("email", "=", email).
+		Get()
 	if err != nil {
 		return nil, err
 	}
@@ -197,10 +207,11 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+		CreatedAt:          r["created_at"].(time.Time),
+		DeletedAt:          r["deleted_at"].(time.Time),
 		Username:           r["username"].(string),
 		Email:              email,
 		Password:           r["password"].(string),
-		CreatedAt:          r["created_at"].(time.Time),
 		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
 	}
@@ -210,7 +221,17 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	username = strings.ToLower(username)
 
-	res, err := m.Db.Table("users").Select("id", "email", "password", "created_at", "last_login", "last_password_change").Where("LOWER(username)", "=", username).Get()
+	res, err := m.Db.Table("users").Select(
+		"id",
+		"created_at",
+		"deleted_at",
+		"email",
+		"password",
+		"last_login",
+		"last_password_change",
+	).
+		Where("LOWER(username)", "=", username).
+		Get()
 	if err != nil {
 		return nil, err
 	}
@@ -228,10 +249,11 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+		CreatedAt:          r["created_at"].(time.Time),
+		DeletedAt:          r["deleted_at"].(time.Time),
 		Username:           username,
 		Email:              r["email"].(string),
 		Password:           r["password"].(string),
-		CreatedAt:          r["created_at"].(time.Time),
 		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
 	}
