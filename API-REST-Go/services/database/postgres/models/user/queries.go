@@ -379,13 +379,26 @@ func (m *Model) Insert(u *User) error {
 	return tx.Commit()
 }
 func (m *Model) Update(u *User) error {
-	_, err := m.Db.Table("users").Where("id", "=", u.ID).Update(map[string]interface{}{
-		"nick":       u.Nick,
-		"first_name": u.FirstName,
-		"last_name":  u.LastName,
-		"phone":      u.Phone,
-		"address":    u.Address,
-	})
+	colValues := make(map[string]interface{})
+	if u.Nick != "" {
+		colValues["nick"] = u.Nick
+	}
+	if u.FirstName != "" {
+		colValues["first_name"] = u.FirstName
+	}
+	if u.LastName != "" {
+		colValues["last_name"] = u.LastName
+	}
+	if u.Phone != "" {
+		colValues["phone"] = u.Phone
+	}
+	if u.Address != "" {
+		colValues["address"] = u.Address
+	}
+	if len(colValues) > 0 {
+		colValues["updated_at"] = "NOW()"
+	}
+	_, err := m.Db.Table("users").Where("id", "=", u.ID).Update(colValues)
 	return err
 }
 func (m *Model) UpdatePassword(id int, password string) error {

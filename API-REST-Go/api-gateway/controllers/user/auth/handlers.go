@@ -146,14 +146,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 	claimerID := ctx.GetInt("Claimer-ID")
 
 	var req payloads.UpdateRequest
-
 	err := ctx.BindJSON(&req)
-	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -161,9 +154,11 @@ func (c *Controller) Update(ctx *gin.Context) {
 
 	var u user.User
 	u.ID = claimerID
-	u.Username = req.Name // cambiar por ruta del archivo creado
-	u.Email = req.Email
-	u.Password = string(hashedPassword)
+	u.Nick = req.Nick
+	u.FirstName = req.FirstName
+	u.LastName = req.LastName
+	u.Phone = req.Phone
+	u.Address = req.Address
 
 	err = c.Model.Update(&u)
 	if err != nil {

@@ -9,10 +9,11 @@ type LoginRequest struct {
 }
 
 type UpdateRequest struct {
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	PhotoBase64 string `json:"photo_base64"`
-	Password    string `json:"password"`
+	Nick      string `json:"nick"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Phone     string `json:"phone"`
+	Address   string `json:"address"`
 }
 
 type UpdateRolesRequest struct {
