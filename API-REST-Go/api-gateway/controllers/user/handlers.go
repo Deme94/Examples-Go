@@ -27,9 +27,30 @@ import (
 func (c *Controller) GetAll(ctx *gin.Context) {
 
 	// Query parameters
+	predicates := psql.Predicates{}
+	pageParam := ctx.Query("page")
+	pageSizeParam := ctx.Query("pageSize")
 	yearParam := ctx.Query("year")
 	deletedParam := ctx.Query("deleted")
-	predicates := psql.Predicates{}
+	if len(pageParam) != 0 && len(pageSizeParam) != 0 {
+		page, err := strconv.Atoi(pageParam)
+		if err != nil {
+			util.ErrorJSON(ctx, err)
+			return
+		}
+		pageSize, err := strconv.Atoi(pageSizeParam)
+		if err != nil {
+			util.ErrorJSON(ctx, err)
+			return
+		}
+		if page == 0 || pageSize == 0 {
+			util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
+			return
+		}
+		limit := pageSize
+		offset := (page - 1) * pageSize
+		predicates.Offset(offset).Limit(limit)
+	}
 	if len(yearParam) != 0 {
 		startDate := fmt.Sprint(yearParam, "-01-01")
 		endDate := fmt.Sprint(yearParam, "-12-31")

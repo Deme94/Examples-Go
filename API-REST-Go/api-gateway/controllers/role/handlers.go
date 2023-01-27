@@ -16,8 +16,29 @@ import (
 func (c *Controller) GetAll(ctx *gin.Context) {
 
 	// Query parameters
-	nameParam := ctx.Query("name")
 	predicates := psql.Predicates{}
+	pageParam := ctx.Query("page")
+	pageSizeParam := ctx.Query("pageSize")
+	nameParam := ctx.Query("name")
+	if len(pageParam) != 0 && len(pageSizeParam) != 0 {
+		page, err := strconv.Atoi(pageParam)
+		if err != nil {
+			util.ErrorJSON(ctx, err)
+			return
+		}
+		pageSize, err := strconv.Atoi(pageSizeParam)
+		if err != nil {
+			util.ErrorJSON(ctx, err)
+			return
+		}
+		if page == 0 || pageSize == 0 {
+			util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
+			return
+		}
+		limit := pageSize
+		offset := (page - 1) * pageSize
+		predicates.Offset(offset).Limit(limit)
+	}
 	if len(nameParam) != 0 {
 		predicates.Where("name", "=", nameParam)
 	}
