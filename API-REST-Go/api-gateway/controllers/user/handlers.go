@@ -26,20 +26,17 @@ import (
 
 func (c *Controller) GetAll(ctx *gin.Context) {
 
-	var usrs []*user.User
-	var err error
-
 	// Query parameters
-	y := ctx.Query("year")
-	d := ctx.Query("deleted")
+	yearParam := ctx.Query("year")
+	deletedParam := ctx.Query("deleted")
 	predicates := psql.Predicates{}
-	if len(y) != 0 {
-		startDate := fmt.Sprint(y, "-01-01")
-		endDate := fmt.Sprint(y, "-12-31")
+	if len(yearParam) != 0 {
+		startDate := fmt.Sprint(yearParam, "-01-01")
+		endDate := fmt.Sprint(yearParam, "-12-31")
 		predicates.Where("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
 	}
-	if len(d) != 0 {
-		deleted, err := strconv.ParseBool(d)
+	if len(deletedParam) != 0 {
+		deleted, err := strconv.ParseBool(deletedParam)
 		if err == nil {
 			if predicates.HasWhere() {
 				if deleted {
@@ -57,7 +54,7 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 		}
 	}
 
-	usrs, err = c.Model.GetAll(&predicates)
+	usrs, err := c.Model.GetAll(&predicates)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return

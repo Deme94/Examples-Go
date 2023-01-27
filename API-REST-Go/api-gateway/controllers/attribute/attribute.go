@@ -15,7 +15,7 @@ func (c *Controller) getDateRangeFromQuery(query url.Values) (time.Time, time.Ti
 	var fromDate time.Time
 	var toDate time.Time
 
-	// if query parameters
+	// Query parameters
 	fromDateString := query.Get("fromDate")
 	toDateString := query.Get("toDate")
 	if len(fromDateString) != 0 {

@@ -15,17 +15,14 @@ import (
 
 func (c *Controller) GetAll(ctx *gin.Context) {
 
-	var permissions []*permission.Permission
-	var err error
-
 	// Query parameters
-	n := ctx.Query("name")
+	nameParam := ctx.Query("name")
 	predicates := psql.Predicates{}
-	if len(n) != 0 {
-		predicates.Where("name", "=", n)
+	if len(nameParam) != 0 {
+		predicates.Where("name", "=", nameParam)
 	}
 
-	permissions, err = c.Model.GetAll(&predicates)
+	permissions, err := c.Model.GetAll(&predicates)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return

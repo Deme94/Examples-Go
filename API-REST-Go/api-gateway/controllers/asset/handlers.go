@@ -12,16 +12,17 @@ import (
 )
 
 func (c *Controller) GetAll(ctx *gin.Context) {
+
+	// Query parameters
+	filterOptions := make(map[string]interface{})
 	fromDate, toDate, err := c.getDateRangeFromQuery(ctx.Request.URL.Query())
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
 	}
-
-	filterOptions := make(map[string]interface{})
-	name := ctx.Query("name")
-	if len(name) != 0 {
-		filterOptions["name"] = name
+	nameParam := ctx.Query("name")
+	if len(nameParam) != 0 {
+		filterOptions["name"] = nameParam
 	}
 	// other filter options...
 
