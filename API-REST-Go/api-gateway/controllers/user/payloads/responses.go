@@ -15,7 +15,3 @@ type LoginResponse struct {
 	ID    int    `json:"user_id"`
 	Token string `json:"token"`
 }
-
-type OkResponse struct {
-	OK bool `json:"ok"`
-}

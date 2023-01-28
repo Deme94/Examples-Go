@@ -8,7 +8,3 @@ type GetResponse struct {
 	Resource  string `json:"resource"`
 	Operation string `json:"operation"`
 }
-
-type OkResponse struct {
-	OK bool `json:"ok"`
-}

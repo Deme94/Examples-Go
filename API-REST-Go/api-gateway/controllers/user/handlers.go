@@ -228,10 +228,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateRoles(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -255,10 +252,7 @@ func (c *Controller) UpdateRoles(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -311,10 +305,7 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateCV(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -358,10 +349,7 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 	// Save fileName in DB
 	c.Model.UpdateCV(id, fileName)
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Ban(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -384,10 +372,7 @@ func (c *Controller) Ban(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Unban(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -403,10 +388,7 @@ func (c *Controller) Unban(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Restore(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -422,10 +404,7 @@ func (c *Controller) Restore(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -441,8 +420,5 @@ func (c *Controller) Delete(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }

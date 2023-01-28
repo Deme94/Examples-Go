@@ -25,7 +25,3 @@ type LoginResponse struct {
 	Token     string     `json:"token,omitempty"`
 	BanExpire *time.Time `json:"ban_expire,omitempty"`
 }
-
-type OkResponse struct {
-	OK bool `json:"ok"`
-}

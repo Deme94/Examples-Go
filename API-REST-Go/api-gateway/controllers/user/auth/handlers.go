@@ -174,10 +174,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) ChangePassword(ctx *gin.Context) {
 	claimerID := ctx.GetInt("Claimer-ID")
@@ -214,10 +211,7 @@ func (c *Controller) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) ResetPassword(ctx *gin.Context) {
 	var req payloads.ResetPasswordRequest
@@ -251,10 +245,7 @@ func (c *Controller) ResetPassword(ctx *gin.Context) {
 	fmt.Println(password)
 	// ...
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateRoles(ctx *gin.Context) {
 	claimerID := ctx.GetInt("Claimer-ID")
@@ -273,10 +264,7 @@ func (c *Controller) UpdateRoles(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 	claimerID := ctx.GetInt("Claimer-ID")
@@ -324,10 +312,7 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateCV(ctx *gin.Context) {
 	claimerID := ctx.GetInt("Claimer-ID")
@@ -366,10 +351,7 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 	// Save fileName in DB
 	c.Model.UpdateCV(claimerID, fileName)
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Delete(ctx *gin.Context) {
 	claimerID := ctx.GetInt("Claimer-ID")
@@ -380,8 +362,5 @@ func (c *Controller) Delete(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }

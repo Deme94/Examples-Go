@@ -119,10 +119,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdatePermissions(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -146,10 +143,7 @@ func (c *Controller) UpdatePermissions(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -165,8 +159,5 @@ func (c *Controller) Delete(ctx *gin.Context) {
 		return
 	}
 
-	ok := payloads.OkResponse{
-		OK: true,
-	}
-	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+	util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
