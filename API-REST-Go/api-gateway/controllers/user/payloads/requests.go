@@ -11,6 +11,16 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type QueryParams struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"pageSize"`
+	Deleted  bool   `form:"deleted"`
+	Banned   bool   `form:"banned"`
+	Year     int    `form:"year"`
+	Month    int    `form:"month"`
+	Phone    string `form:"phone"`
+}
+
 type InsertRequest struct {
 	Username  string `json:"username" binding:"required"`
 	Email     string `json:"email" binding:"required"`
