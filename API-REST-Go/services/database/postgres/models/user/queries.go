@@ -116,30 +116,36 @@ func (m *Model) Get(id int) (*User, error) {
 	if addr != nil {
 		address = addr.(string)
 	}
-	updatedAt := time.Time{}
+	var updatedAt *time.Time
 	ua := r["updated_at"]
 	if ua != nil {
-		updatedAt = ua.(time.Time)
+		t := ua.(time.Time)
+		updatedAt = &t
 	}
-	deletedAt := time.Time{}
+	var deletedAt *time.Time
 	da := r["deleted_at"]
 	if da != nil {
-		deletedAt = da.(time.Time)
+		t := da.(time.Time)
+		deletedAt = &t
 	}
-	lastLogin := time.Time{}
+	var lastLogin *time.Time
 	ll := r["last_login"]
 	if ll != nil {
-		lastLogin = ll.(time.Time)
+		t := ll.(time.Time)
+		lastLogin = &t
 	}
-	banDate := time.Time{}
+	var banDate *time.Time
 	bd := r["ban_date"]
 	if bd != nil {
-		banDate = bd.(time.Time)
+		t := bd.(time.Time)
+		banDate = &t
 	}
-	banExpire := time.Time{}
+	var banExpire *time.Time
 	be := r["ban_expire"]
 	if be != nil {
-		banExpire = be.(time.Time)
+		t := be.(time.Time)
+		banExpire = &t
+
 	}
 
 	// Relations
@@ -153,9 +159,12 @@ func (m *Model) Get(id int) (*User, error) {
 		}
 	}
 
+	createdAt := r["created_at"].(time.Time)
+	LastPasswordChange := r["last_password_change"].(time.Time)
+
 	u := User{
 		ID:                 id,
-		CreatedAt:          r["created_at"].(time.Time),
+		CreatedAt:          &createdAt,
 		UpdatedAt:          updatedAt,
 		DeletedAt:          deletedAt,
 		Username:           r["username"].(string),
@@ -166,7 +175,7 @@ func (m *Model) Get(id int) (*User, error) {
 		Phone:              phone,
 		Address:            address,
 		LastLogin:          lastLogin,
-		LastPasswordChange: r["last_password_change"].(time.Time),
+		LastPasswordChange: &LastPasswordChange,
 		VerifiedMail:       r["verified_mail"].(bool),
 		VerifiedPhone:      r["verified_phone"].(bool),
 		BanDate:            banDate,
@@ -217,36 +226,43 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 	r := res[0]
 
 	// Check if nil values
-	lastLogin := time.Time{}
+	var lastLogin *time.Time
 	ll := r["last_login"]
 	if ll != nil {
-		lastLogin = ll.(time.Time)
+		t := ll.(time.Time)
+		lastLogin = &t
 	}
-	deletedAt := time.Time{}
+	var deletedAt *time.Time
 	da := r["deleted_at"]
 	if da != nil {
-		deletedAt = da.(time.Time)
+		t := da.(time.Time)
+		deletedAt = &t
 	}
-	banDate := time.Time{}
+	var banDate *time.Time
 	bd := r["ban_date"]
 	if bd != nil {
-		banDate = bd.(time.Time)
+		t := bd.(time.Time)
+		banDate = &t
 	}
-	banExpire := time.Time{}
+	var banExpire *time.Time
 	be := r["ban_expire"]
 	if be != nil {
-		banExpire = be.(time.Time)
+		t := be.(time.Time)
+		banExpire = &t
 	}
+
+	createdAt := r["created_at"].(time.Time)
+	lastPasswordChange := r["last_password_change"].(time.Time)
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
-		CreatedAt:          r["created_at"].(time.Time),
+		CreatedAt:          &createdAt,
 		DeletedAt:          deletedAt,
 		Username:           r["username"].(string),
 		Email:              email,
 		Password:           r["password"].(string),
 		LastLogin:          lastLogin,
-		LastPasswordChange: r["last_password_change"].(time.Time),
+		LastPasswordChange: &lastPasswordChange,
 		BanDate:            banDate,
 		BanExpire:          banExpire,
 	}
@@ -278,36 +294,43 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	r := res[0]
 
 	// Check if nil values
-	lastLogin := time.Time{}
+	var lastLogin *time.Time
 	ll := r["last_login"]
 	if ll != nil {
-		lastLogin = ll.(time.Time)
+		t := ll.(time.Time)
+		lastLogin = &t
 	}
-	deletedAt := time.Time{}
+	var deletedAt *time.Time
 	da := r["deleted_at"]
 	if da != nil {
-		deletedAt = da.(time.Time)
+		t := da.(time.Time)
+		deletedAt = &t
 	}
-	banDate := time.Time{}
+	var banDate *time.Time
 	bd := r["ban_date"]
 	if bd != nil {
-		banDate = bd.(time.Time)
+		t := bd.(time.Time)
+		banDate = &t
 	}
-	banExpire := time.Time{}
+	var banExpire *time.Time
 	be := r["ban_expire"]
 	if be != nil {
-		banExpire = be.(time.Time)
+		t := be.(time.Time)
+		banExpire = &t
 	}
+
+	createdAt := r["created_at"].(time.Time)
+	lastPasswordChange := r["last_password_change"].(time.Time)
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
-		CreatedAt:          r["created_at"].(time.Time),
+		CreatedAt:          &createdAt,
 		DeletedAt:          deletedAt,
 		Username:           username,
 		Email:              r["email"].(string),
 		Password:           r["password"].(string),
 		LastLogin:          lastLogin,
-		LastPasswordChange: r["last_password_change"].(time.Time),
+		LastPasswordChange: &lastPasswordChange,
 		BanDate:            banDate,
 		BanExpire:          banExpire,
 	}

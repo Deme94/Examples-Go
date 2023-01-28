@@ -94,7 +94,7 @@ func (c *Controller) Insert(ctx *gin.Context) {
 			util.ErrorJSON(ctx, err)
 			return
 		}
-		assets = append(assets, &asset.Asset{Name: a.Name, Date: date})
+		assets = append(assets, &asset.Asset{Name: a.Name, Date: &date})
 	}
 
 	if len(assets) == 1 {
@@ -136,7 +136,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 		return
 	}
 	a.Name = req.Name
-	a.Date = date
+	a.Date = &date
 
 	err = c.Model.Update(&a)
 	if err != nil {

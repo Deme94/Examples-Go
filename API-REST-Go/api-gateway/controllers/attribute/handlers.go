@@ -73,7 +73,7 @@ func (c *Controller) Insert(ctx *gin.Context) {
 					Label:     a.Label,
 					Unit:      a.Unit,
 				},
-				Timestamp: timestamp,
+				Timestamp: &timestamp,
 				Value:     a.Value,
 			},
 		)
@@ -124,7 +124,7 @@ func (c *Controller) Update(ctx *gin.Context) {
 		Label:     req.Label,
 		Unit:      req.Unit,
 	}
-	a.Timestamp = timestamp
+	a.Timestamp = &timestamp
 	a.Value = req.Value
 
 	err = c.Model.Update(&a)

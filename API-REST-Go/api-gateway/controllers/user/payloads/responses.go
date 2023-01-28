@@ -1,7 +1,7 @@
 package payloads
 
 type GetAllResponse struct {
-	Users []*GetResponse `json:"users"`
+	Users []*GetResponse `json:"users,omitempty"`
 }
 type GetResponse struct {
 	ID        int    `json:"id"`

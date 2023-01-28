@@ -6,10 +6,10 @@ import (
 )
 
 type User struct {
-	ID        int       `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	ID        int        `json:"id"`
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -21,12 +21,12 @@ type User struct {
 	Phone     string `json:"phone,omitempty"`
 	Address   string `json:"address,omitempty"`
 
-	LastLogin          time.Time `json:"last_login,omitempty"`
-	LastPasswordChange time.Time `json:"last_password_change,omitempty"`
-	VerifiedMail       bool      `json:"verified_mail,omitempty"`
-	VerifiedPhone      bool      `json:"verified_phone,omitempty"`
-	BanDate            time.Time `json:"ban_date,omitempty"`
-	BanExpire          time.Time `json:"ban_expire,omitempty"`
+	LastLogin          *time.Time `json:"last_login,omitempty"`
+	LastPasswordChange *time.Time `json:"last_password_change,omitempty"`
+	VerifiedMail       bool       `json:"verified_mail,omitempty"`
+	VerifiedPhone      bool       `json:"verified_phone,omitempty"`
+	BanDate            *time.Time `json:"ban_date,omitempty"`
+	BanExpire          *time.Time `json:"ban_expire,omitempty"`
 
 	Roles []*role.Role `json:"roles,omitempty"`
 

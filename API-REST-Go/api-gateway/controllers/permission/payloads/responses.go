@@ -1,7 +1,7 @@
 package payloads
 
 type GetAllResponse struct {
-	Permissions []*GetResponse `json:"permissions"`
+	Permissions []*GetResponse `json:"permissions,omitempty"`
 }
 type GetResponse struct {
 	ID        int    `json:"id"`

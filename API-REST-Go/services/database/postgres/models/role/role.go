@@ -7,6 +7,6 @@ import (
 type Role struct {
 	ID          int                      `json:"id"`
 	Name        string                   `json:"name"`
-	Permissions []*permission.Permission `json:"permissions"`
+	Permissions []*permission.Permission `json:"permissions,omitempty"`
 	// ...
 }

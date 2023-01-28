@@ -9,7 +9,7 @@ import (
 type Attribute struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id, omitempty"`
 	Metadata  AttributeMetadata  `json:"metadata,omitempty" bson:"metadata"`
-	Timestamp time.Time          `json:"timestamp,omitempty" bson:"timestamp"`
+	Timestamp *time.Time         `json:"timestamp,omitempty" bson:"timestamp"`
 	Value     float64            `json:"value,omitempty" bson:"value"`
 }
 type AttributeMetadata struct {

@@ -55,7 +55,7 @@ func (c *Controller) Login(ctx *gin.Context) {
 		if u.BanExpire.Before(time.Now()) {
 			c.Model.Unban(u.ID)
 		} else {
-			util.WriteJSON(ctx, http.StatusUnauthorized, payloads.LoginResponse{BanExpire: &u.BanExpire}, "error")
+			util.WriteJSON(ctx, http.StatusUnauthorized, payloads.LoginResponse{BanExpire: u.BanExpire}, "error")
 			return
 		}
 	}
