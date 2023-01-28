@@ -181,7 +181,17 @@ func (c *Controller) Insert(ctx *gin.Context) {
 		return
 	}
 
-	err = c.Model.Insert(&user.User{Username: req.Username, Email: req.Email, Password: hashedPassword})
+	var u user.User
+	u.Username = req.Username
+	u.Email = req.Email
+	u.Password = hashedPassword
+	u.Nick = req.Nick
+	u.FirstName = req.FirstName
+	u.LastName = req.LastName
+	u.Phone = req.Phone
+	u.Address = req.Address
+
+	err = c.Model.Insert(&u)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return

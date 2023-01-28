@@ -353,9 +353,26 @@ func (m *Model) Insert(u *User) error {
 	defer tx.Rollback()
 
 	// Insert user
-	_, err = tx.Exec("INSERT INTO users (username, email, password, nick) VALUES " +
-		"('" + u.Username + "', '" + strings.ToLower(u.Email) + "', '" + u.Password +
-		"', '" + nick + "');")
+	columns := "username, email, password, nick"
+	values := "'" + u.Username + "', '" + strings.ToLower(u.Email) + "', '" + u.Password + "', '" + nick + "'"
+	if u.FirstName != "" {
+		columns += ", first_name"
+		values += ", '" + u.FirstName + "'"
+	}
+	if u.LastName != "" {
+		columns += ", last_name"
+		values += ", '" + u.LastName + "'"
+	}
+	if u.Phone != "" {
+		columns += ", phone"
+		values += ", '" + u.Phone + "'"
+	}
+	if u.Address != "" {
+		columns += ", address"
+		values += ", '" + u.Address + "'"
+	}
+	fmt.Println("INSERT INTO users (" + columns + ") VALUES (" + values + ");")
+	_, err = tx.Exec("INSERT INTO users (" + columns + ") VALUES (" + values + ");")
 	if err != nil {
 		return err
 	}

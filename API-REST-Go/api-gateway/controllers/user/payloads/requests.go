@@ -9,9 +9,14 @@ type LoginRequest struct {
 }
 
 type InsertRequest struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+	Email     string `json:"email" binding:"required"`
+	Password  string `json:"password" binding:"required"`
+	Nick      string `json:"nick"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Phone     string `json:"phone"`
+	Address   string `json:"address"`
 }
 
 type UpdateRequest struct {
