@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kolesa-team/go-webp/decoder"
@@ -49,6 +50,14 @@ func (c *Controller) Login(ctx *gin.Context) {
 	if !u.DeletedAt.IsZero() {
 		util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
 		return
+	}
+	if !u.BanDate.IsZero() {
+		if u.BanExpire.Before(time.Now()) {
+			c.Model.Unban(u.ID)
+		} else {
+			util.WriteJSON(ctx, http.StatusUnauthorized, payloads.LoginResponse{BanExpire: &u.BanExpire}, "error")
+			return
+		}
 	}
 
 	hashedPassword := u.Password

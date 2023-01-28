@@ -67,8 +67,10 @@ func Start() error {
 	apiAuth.PUT("/users/:id", middleware.CheckPermission("users", "update"), controllers.User.Update)
 	apiAuth.PUT("/users/:id/photo", middleware.CheckPermission("users", "update"), controllers.User.UpdatePhoto)
 	apiAuth.PUT("/users/:id/cv", middleware.CheckPermission("users", "update"), controllers.User.UpdateCV)
-	apiAuth.DELETE("/users/:id", middleware.CheckPermission("users", "delete"), controllers.User.Delete)
+	apiAuth.PUT("/users/:id/ban", middleware.CheckPermission("users", "ban"), controllers.User.Ban)
+	apiAuth.PUT("/users/:id/unban", middleware.CheckPermission("users", "ban"), controllers.User.Unban)
 	apiAuth.PUT("/users/:id/restore", middleware.CheckPermission("users", "delete"), controllers.User.Restore)
+	apiAuth.DELETE("/users/:id", middleware.CheckPermission("users", "delete"), controllers.User.Delete)
 
 	apiAuth.GET("/roles", middleware.CheckPermission("roles", "read"), controllers.Role.GetAll)
 	apiAuth.GET("/roles/:id", middleware.CheckPermission("roles", "read"), controllers.Role.Get)

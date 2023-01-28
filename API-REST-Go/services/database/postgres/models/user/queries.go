@@ -203,6 +203,8 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 		"password",
 		"last_login",
 		"last_password_change",
+		"ban_date",
+		"ban_expire",
 	).
 		Where("email", "=", email).
 		Get()
@@ -225,6 +227,16 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 	if da != nil {
 		deletedAt = da.(time.Time)
 	}
+	banDate := time.Time{}
+	bd := r["ban_date"]
+	if bd != nil {
+		banDate = bd.(time.Time)
+	}
+	banExpire := time.Time{}
+	be := r["ban_expire"]
+	if be != nil {
+		banExpire = be.(time.Time)
+	}
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
@@ -235,6 +247,8 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 		Password:           r["password"].(string),
 		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
+		BanDate:            banDate,
+		BanExpire:          banExpire,
 	}
 
 	return &u, nil
@@ -250,6 +264,8 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 		"password",
 		"last_login",
 		"last_password_change",
+		"ban_date",
+		"ban_expire",
 	).
 		Where("LOWER(username)", "=", username).
 		Get()
@@ -272,6 +288,16 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	if da != nil {
 		deletedAt = da.(time.Time)
 	}
+	banDate := time.Time{}
+	bd := r["ban_date"]
+	if bd != nil {
+		banDate = bd.(time.Time)
+	}
+	banExpire := time.Time{}
+	be := r["ban_expire"]
+	if be != nil {
+		banExpire = be.(time.Time)
+	}
 
 	u := User{
 		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
@@ -282,6 +308,8 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 		Password:           r["password"].(string),
 		LastLogin:          lastLogin,
 		LastPasswordChange: r["last_password_change"].(time.Time),
+		BanDate:            banDate,
+		BanExpire:          banExpire,
 	}
 
 	return &u, nil
@@ -371,7 +399,6 @@ func (m *Model) Insert(u *User) error {
 		columns += ", address"
 		values += ", '" + u.Address + "'"
 	}
-	fmt.Println("INSERT INTO users (" + columns + ") VALUES (" + values + ");")
 	_, err = tx.Exec("INSERT INTO users (" + columns + ") VALUES (" + values + ");")
 	if err != nil {
 		return err
@@ -477,6 +504,23 @@ func (m *Model) UpdatePhoto(id int, photoName string) error {
 }
 func (m *Model) UpdateCV(id int, cvName string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"cv_name": cvName})
+	return err
+}
+func (m *Model) Ban(id int, banExpire time.Time) error {
+	sqlStatement := `
+		UPDATE users
+		SET ban_date = $2, ban_expire = $3
+		WHERE id = $1;`
+
+	_, err := m.Db.Sql().Exec(sqlStatement, id, "NOW()", banExpire)
+
+	return err
+}
+func (m *Model) Unban(id int) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{
+		"ban_date":   nil,
+		"ban_expire": nil,
+	})
 	return err
 }
 func (m *Model) Restore(id int) error {

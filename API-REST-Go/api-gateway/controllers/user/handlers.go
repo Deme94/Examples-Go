@@ -363,6 +363,51 @@ func (c *Controller) UpdateCV(ctx *gin.Context) {
 	}
 	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
 }
+func (c *Controller) Ban(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		logger.Logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	var req payloads.BanRequest
+	err = ctx.ShouldBindJSON(&req)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	err = c.Model.Ban(id, req.BanExpire)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	ok := payloads.OkResponse{
+		OK: true,
+	}
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+}
+func (c *Controller) Unban(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		logger.Logger.Print(errors.New("invalid id parameter"))
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	err = c.Model.Unban(id)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	ok := payloads.OkResponse{
+		OK: true,
+	}
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+}
 func (c *Controller) Restore(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

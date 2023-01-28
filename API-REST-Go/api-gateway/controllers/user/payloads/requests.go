@@ -1,6 +1,9 @@
 package payloads
 
-import "mime/multipart"
+import (
+	"mime/multipart"
+	"time"
+)
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -29,6 +32,10 @@ type UpdateRequest struct {
 
 type UpdateRolesRequest struct {
 	RoleIDs []int `json:"role_ids" binding:"required"`
+}
+
+type BanRequest struct {
+	BanExpire time.Time `json:"ban_expire" binding:"required" example:"2006-01-02T00:00:00Z"`
 }
 
 type UpdatePhotoRequest struct {
