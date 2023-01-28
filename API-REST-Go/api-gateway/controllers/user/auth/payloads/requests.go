@@ -16,6 +16,11 @@ type UpdateRequest struct {
 	Address   string `json:"address"`
 }
 
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
 type UpdateRolesRequest struct {
 	RoleIDs []int `json:"role_ids" binding:"required"`
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pascaldekloe/jwt"
+	"golang.org/x/crypto/bcrypt"
 
 	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/permission"
@@ -32,6 +33,19 @@ func (Controller) generateJwtToken(subject string, secret string) ([]byte, error
 	}
 
 	return token, nil
+}
+
+func (Controller) CompareHashAndPassword(hashedPassword string, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+func (c *Controller) HashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
 }
 
 func (c *Controller) GetRoles(userID int) ([]string, error) {

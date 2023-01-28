@@ -21,7 +21,6 @@ import (
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (c *Controller) GetAll(ctx *gin.Context) {
@@ -176,13 +175,13 @@ func (c *Controller) Insert(ctx *gin.Context) {
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+	hashedPassword, err := c.HashPassword(req.Password)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
 	}
 
-	err = c.Model.Insert(&user.User{Username: req.Username, Email: req.Email, Password: string(hashedPassword)})
+	err = c.Model.Insert(&user.User{Username: req.Username, Email: req.Email, Password: hashedPassword})
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return

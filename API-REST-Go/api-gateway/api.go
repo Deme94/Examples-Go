@@ -47,11 +47,12 @@ func Start() error {
 		util.WriteJSON(ctx, http.StatusOK, appStatus, "status")
 	})
 
-	api.POST("/auth", controllers.User.Auth.Login)
+	api.POST("/auth/login", controllers.User.Auth.Login)
 	apiAuth.GET("/auth", controllers.User.Auth.Get)
 	apiAuth.GET("/auth/photo", controllers.User.Auth.GetPhoto)
 	apiAuth.GET("/auth/cv", controllers.User.Auth.GetCV)
 	apiAuth.PUT("/auth", controllers.User.Auth.Update)
+	apiAuth.PUT("/auth/change-password", controllers.User.Auth.ChangePassword)
 	apiAuth.PUT("/auth/photo", controllers.User.Auth.UpdatePhoto)
 	apiAuth.PUT("/auth/cv", controllers.User.Auth.UpdateCV)
 	apiAuth.DELETE("/auth", controllers.User.Auth.Delete)

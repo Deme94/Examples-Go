@@ -176,6 +176,22 @@ func (m *Model) Get(id int) (*User, error) {
 
 	return &u, nil
 }
+func (m *Model) GetPassword(id int) (string, error) {
+	res, err := m.Db.Table("users").Select(
+		"password",
+	).
+		Where("id", "=", id).
+		First()
+	if err != nil {
+		return "", err
+	}
+	if len(res) == 0 {
+		return "", errors.New("user not found")
+	}
+	password := res["password"].(string)
+
+	return password, nil
+}
 func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 	email = strings.ToLower(email)
 

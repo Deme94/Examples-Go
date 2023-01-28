@@ -20,7 +20,6 @@ import (
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (c *Controller) Login(ctx *gin.Context) {
@@ -54,7 +53,7 @@ func (c *Controller) Login(ctx *gin.Context) {
 
 	hashedPassword := u.Password
 
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password))
+	err = c.CompareHashAndPassword(hashedPassword, req.Password)
 	if err != nil {
 		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		return
@@ -163,6 +162,46 @@ func (c *Controller) Update(ctx *gin.Context) {
 	err = c.Model.Update(&u)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	ok := payloads.OkResponse{
+		OK: true,
+	}
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+}
+func (c *Controller) ChangePassword(ctx *gin.Context) {
+	claimerID := ctx.GetInt("Claimer-ID")
+
+	var req payloads.ChangePasswordRequest
+
+	err := ctx.BindJSON(&req)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	hashedPassword, err := c.Model.GetPassword(claimerID)
+	if err != nil {
+		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+		return
+	}
+
+	err = c.CompareHashAndPassword(hashedPassword, req.OldPassword)
+	if err != nil {
+		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
+		return
+	}
+
+	hashedNewPassword, err := c.HashPassword(req.NewPassword)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	err = c.Model.UpdatePassword(claimerID, hashedNewPassword)
+	if err != nil {
+		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 		return
 	}
 
