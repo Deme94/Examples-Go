@@ -234,6 +234,11 @@ func (c *Controller) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
+	if !u.DeletedAt.IsZero() {
+		util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
+		return
+	}
+
 	password := c.generateRandomPassword()
 
 	err = c.Model.UpdatePassword(u.ID, password)
