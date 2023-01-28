@@ -10,6 +10,8 @@ import (
 	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/permission"
 	"API-REST/services/database/postgres/models/user"
+
+	pswd "github.com/sethvargo/go-password/password"
 )
 
 type Controller struct {
@@ -35,11 +37,16 @@ func (Controller) generateJwtToken(subject string, secret string) ([]byte, error
 	return token, nil
 }
 
-func (Controller) CompareHashAndPassword(hashedPassword string, password string) error {
+func (Controller) generateRandomPassword() string {
+	password, _ := pswd.Generate(8, 4, 4, true, true)
+	return password
+}
+
+func (Controller) compareHashAndPassword(hashedPassword string, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func (c *Controller) HashPassword(password string) (string, error) {
+func (c *Controller) hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return "", err

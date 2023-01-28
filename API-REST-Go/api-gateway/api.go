@@ -53,6 +53,7 @@ func Start() error {
 	apiAuth.GET("/auth/cv", controllers.User.Auth.GetCV)
 	apiAuth.PUT("/auth", controllers.User.Auth.Update)
 	apiAuth.PUT("/auth/change-password", controllers.User.Auth.ChangePassword)
+	api.PUT("/auth/reset-password", controllers.User.Auth.ResetPassword)
 	apiAuth.PUT("/auth/photo", controllers.User.Auth.UpdatePhoto)
 	apiAuth.PUT("/auth/cv", controllers.User.Auth.UpdateCV)
 	apiAuth.DELETE("/auth", controllers.User.Auth.Delete)

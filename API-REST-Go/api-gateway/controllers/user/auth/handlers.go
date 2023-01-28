@@ -53,7 +53,7 @@ func (c *Controller) Login(ctx *gin.Context) {
 
 	hashedPassword := u.Password
 
-	err = c.CompareHashAndPassword(hashedPassword, req.Password)
+	err = c.compareHashAndPassword(hashedPassword, req.Password)
 	if err != nil {
 		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		return
@@ -187,13 +187,13 @@ func (c *Controller) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	err = c.CompareHashAndPassword(hashedPassword, req.OldPassword)
+	err = c.compareHashAndPassword(hashedPassword, req.OldPassword)
 	if err != nil {
 		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		return
 	}
 
-	hashedNewPassword, err := c.HashPassword(req.NewPassword)
+	hashedNewPassword, err := c.hashPassword(req.NewPassword)
 	if err != nil {
 		util.ErrorJSON(ctx, err)
 		return
@@ -204,6 +204,38 @@ func (c *Controller) ChangePassword(ctx *gin.Context) {
 		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 		return
 	}
+
+	ok := payloads.OkResponse{
+		OK: true,
+	}
+	util.WriteJSON(ctx, http.StatusOK, ok, "OK")
+}
+func (c *Controller) ResetPassword(ctx *gin.Context) {
+	var req payloads.ResetPasswordRequest
+
+	err := ctx.BindJSON(&req)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	u, err := c.Model.GetByEmailWithPassword(req.Email)
+	if err != nil {
+		util.ErrorJSON(ctx, err)
+		return
+	}
+
+	password := c.generateRandomPassword()
+
+	err = c.Model.UpdatePassword(u.ID, password)
+	if err != nil {
+		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+		return
+	}
+
+	// Send password to email
+	fmt.Println(password)
+	// ...
 
 	ok := payloads.OkResponse{
 		OK: true,
