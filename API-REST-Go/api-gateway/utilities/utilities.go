@@ -3,18 +3,18 @@ package utilities
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
-func WriteJSON(ctx *gin.Context, status int, data interface{}, wrap string) {
-	ctx.JSON(status, gin.H{wrap: data})
+func WriteJSON(ctx *fiber.Ctx, status int, data interface{}, wrap string) error {
+	return ctx.Status(status).JSON(map[string]interface{}{wrap: data})
 }
 
 type errorResponse struct {
 	Message string `json:"message"`
 }
 
-func ErrorJSON(ctx *gin.Context, err error, status ...int) {
+func ErrorJSON(ctx *fiber.Ctx, err error, status ...int) error {
 	statusCode := http.StatusBadRequest
 	if len(status) > 0 {
 		statusCode = status[0]
@@ -24,5 +24,5 @@ func ErrorJSON(ctx *gin.Context, err error, status ...int) {
 		Message: err.Error(),
 	}
 
-	WriteJSON(ctx, statusCode, theError, "error")
+	return WriteJSON(ctx, statusCode, theError, "error")
 }

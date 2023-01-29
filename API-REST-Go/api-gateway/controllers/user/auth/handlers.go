@@ -10,53 +10,46 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
 )
 
-func (c *Controller) Login(ctx *gin.Context) {
+func (c *Controller) Login(ctx *fiber.Ctx) error {
 	var req payloads.LoginRequest
-
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var u *user.User
 	if req.Email != "" {
 		u, err = c.Model.GetByEmailWithPassword(req.Email)
 		if err != nil {
-			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
-			return
+			return util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		}
 	} else {
 		u, err = c.Model.GetByUsernameWithPassword(req.Username)
 		if err != nil {
-			util.ErrorJSON(ctx, err, http.StatusUnauthorized)
-			return
+			return util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 		}
 	}
 
-	if !u.DeletedAt.IsZero() {
-		util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
-		return
+	if u.DeletedAt != nil {
+		return util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
 	}
-	if !u.BanDate.IsZero() {
+	if u.BanDate != nil {
 		if u.BanExpire.Before(time.Now()) {
 			c.Model.Unban(u.ID)
 		} else {
-			util.WriteJSON(ctx, http.StatusUnauthorized, payloads.LoginResponse{BanExpire: u.BanExpire}, "error")
-			return
+			return util.WriteJSON(ctx, http.StatusUnauthorized, payloads.LoginResponse{BanExpire: u.BanExpire}, "error")
 		}
 	}
 
@@ -64,27 +57,24 @@ func (c *Controller) Login(ctx *gin.Context) {
 
 	err = c.compareHashAndPassword(hashedPassword, req.Password)
 	if err != nil {
-		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
-		return
+		return util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 	}
 
 	// Generate jwt token after successful login
 	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.Env.GetString("JWT_SECRET"))
 	if err != nil {
-		util.ErrorJSON(ctx, err, http.StatusNotImplemented)
-		return
+		return util.ErrorJSON(ctx, err, http.StatusNotImplemented)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, payloads.LoginResponse{ID: u.ID, Token: string(token)}, "response")
+	return util.WriteJSON(ctx, http.StatusOK, payloads.LoginResponse{ID: u.ID, Token: string(token)}, "response")
 }
 
-func (c *Controller) Get(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) Get(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	u, err := c.Model.Get(claimerID)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	userResponse := payloads.GetResponse{
@@ -102,29 +92,26 @@ func (c *Controller) Get(ctx *gin.Context) {
 		VerifiedPhone:      u.VerifiedPhone,
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, userResponse, "user")
+	return util.WriteJSON(ctx, http.StatusOK, userResponse, "user")
 }
-func (c *Controller) GetPhoto(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	imageName, err := c.Model.GetPhoto(claimerID)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Get webp file
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_RDWR, 0644)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	defer f.Close()
 	// Decode webp file to image
 	image, err := webp.Decode(f, &decoder.Options{})
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	// Encode image into buffer
 	var buf bytes.Buffer
@@ -136,28 +123,26 @@ func (c *Controller) GetPhoto(ctx *gin.Context) {
 	// Get bytes and encode to base64
 	imageBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
+	return util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
 }
-func (c *Controller) GetCV(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) GetCV(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	cvName, err := c.Model.GetCV(claimerID)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	filePath := "./storage/users/" + cvName + ".pdf"
-	ctx.File(filePath)
+	return ctx.SendFile(filePath)
 }
-func (c *Controller) Update(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) Update(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	var req payloads.UpdateRequest
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var u user.User
@@ -170,132 +155,116 @@ func (c *Controller) Update(ctx *gin.Context) {
 
 	err = c.Model.Update(&u)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) ChangePassword(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) ChangePassword(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	var req payloads.ChangePasswordRequest
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	hashedPassword, err := c.Model.GetPassword(claimerID)
 	if err != nil {
-		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
-		return
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}
 
 	err = c.compareHashAndPassword(hashedPassword, req.OldPassword)
 	if err != nil {
-		util.ErrorJSON(ctx, err, http.StatusUnauthorized)
-		return
+		return util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 	}
 
 	hashedNewPassword, err := c.hashPassword(req.NewPassword)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.UpdatePassword(claimerID, hashedNewPassword)
 	if err != nil {
-		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
-		return
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) ResetPassword(ctx *gin.Context) {
+func (c *Controller) ResetPassword(ctx *fiber.Ctx) error {
 	var req payloads.ResetPasswordRequest
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	u, err := c.Model.GetByEmailWithPassword(req.Email)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	if !u.DeletedAt.IsZero() {
-		util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
-		return
+	if u.DeletedAt != nil {
+		return util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
 	}
 
 	password := c.generateRandomPassword()
 
 	err = c.Model.UpdatePassword(u.ID, password)
 	if err != nil {
-		util.ErrorJSON(ctx, err, http.StatusInternalServerError)
-		return
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}
 
 	// Send password to email
 	fmt.Println(password)
 	// ...
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) UpdateRoles(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	var req payloads.UpdateRolesRequest
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.UpdateRoles(claimerID, req.RoleIDs...)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) UpdatePhoto(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	var req payloads.UpdatePhotoRequest
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Decode base64 webp to bytes
 	unbased, err := base64.StdEncoding.DecodeString(req.PhotoBase64)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	// Decode bytes to image
 	reader := bytes.NewReader(unbased)
 	image, err := webp.Decode(reader, &decoder.Options{})
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	// Create our own file
 	imageName := "user" + fmt.Sprint(claimerID)
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	defer f.Close()
 	// Encode image into file
@@ -308,59 +277,45 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 
 	err = c.Model.UpdatePhoto(claimerID, imageName)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) UpdateCV(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	// Retrieve the file
-	var req payloads.UpdateCVRequest
-	err := ctx.ShouldBind(&req)
+	file, err := ctx.FormFile("file")
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Check if file is .pdf
-	if filepath.Ext(req.File.Filename) != ".pdf" {
-		util.ErrorJSON(ctx, errors.New("file extension must be pdf"))
-		return
+	if filepath.Ext(file.Filename) != ".pdf" {
+		return util.ErrorJSON(ctx, errors.New("file extension must be pdf"))
 	}
 
-	// Open file
-	file, err := req.File.Open()
-	if err != nil {
-		util.ErrorJSON(ctx, err)
-	}
-	// Create our own file
+	// Save file in storage folder
 	fileName := "usercv" + fmt.Sprint(claimerID)
-	f, err := os.OpenFile("./storage/users/"+fileName+".pdf", os.O_WRONLY|os.O_CREATE, 0666)
+	ctx.SaveFile(file, "./storage/users/"+fileName+".pdf")
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
-	defer f.Close()
-	// Save file in storage
-	io.Copy(f, file)
-	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", req.File.Filename, req.File.Size)
+	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", file.Filename, file.Size)
 
 	// Save fileName in DB
 	c.Model.UpdateCV(claimerID, fileName)
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) Delete(ctx *gin.Context) {
-	claimerID := ctx.GetInt("Claimer-ID")
+func (c *Controller) Delete(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
 
 	err := c.Model.Delete(claimerID)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }

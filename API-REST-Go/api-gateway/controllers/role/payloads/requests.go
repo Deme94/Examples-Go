@@ -1,13 +1,13 @@
 package payloads
 
 type InsertRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `json:"name" validate:"required"`
 }
 
 type UpdateRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `json:"name" validate:"required"`
 }
 
 type UpdatePermissionsRequest struct {
-	PermissionIDs []int `json:"permission_ids" binding:"required"`
+	PermissionIDs []int `json:"permission_ids" validate:"required"`
 }

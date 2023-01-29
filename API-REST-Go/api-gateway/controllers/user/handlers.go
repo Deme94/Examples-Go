@@ -10,20 +10,19 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
 )
 
-func (c *Controller) GetAll(ctx *gin.Context) {
+func (c *Controller) GetAll(ctx *fiber.Ctx) error {
 
 	// Query parameters
 	predicates := psql.Predicates{}
@@ -34,17 +33,14 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 	if len(pageParam) != 0 && len(pageSizeParam) != 0 {
 		page, err := strconv.Atoi(pageParam)
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 		pageSize, err := strconv.Atoi(pageSizeParam)
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 		if page == 0 || pageSize == 0 {
-			util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
-			return
+			return util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
 		}
 		limit := pageSize
 		offset := (page - 1) * pageSize
@@ -76,8 +72,7 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 
 	usrs, err := c.Model.GetAll(&predicates)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var all []*payloads.GetResponse
@@ -92,50 +87,44 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 	}
 
 	allResponse := payloads.GetAllResponse{Users: all}
-	util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
+	return util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
 }
-func (c *Controller) Get(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Get(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	u, err := c.Model.Get(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, u, "user")
+	return util.WriteJSON(ctx, http.StatusOK, u, "user")
 }
-func (c *Controller) GetPhoto(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	imageName, err := c.Model.GetPhoto(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Get webp file
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_RDWR, 0644)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	defer f.Close()
 	// Decode webp file to image
 	image, err := webp.Decode(f, &decoder.Options{})
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	// Encode image into buffer
 	var buf bytes.Buffer
@@ -147,38 +136,34 @@ func (c *Controller) GetPhoto(ctx *gin.Context) {
 	// Get bytes and encode to base64
 	imageBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
+	return util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
 }
-func (c *Controller) GetCV(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) GetCV(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	cvName, err := c.Model.GetCV(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	filePath := "./storage/users/" + cvName + ".pdf"
-	ctx.File(filePath)
+	return ctx.SendFile(filePath)
 }
-func (c *Controller) Insert(ctx *gin.Context) {
+func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	var req payloads.InsertRequest
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	hashedPassword, err := c.HashPassword(req.Password)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var u user.User
@@ -193,25 +178,22 @@ func (c *Controller) Insert(ctx *gin.Context) {
 
 	err = c.Model.Insert(&u)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, "user created successfully", "response")
+	return util.WriteJSON(ctx, http.StatusOK, "user created successfully", "response")
 }
-func (c *Controller) Update(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Update(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var req payloads.UpdateRequest
-	err = ctx.BindJSON(&req)
+	err = ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var u user.User
@@ -224,71 +206,62 @@ func (c *Controller) Update(ctx *gin.Context) {
 
 	err = c.Model.Update(&u)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) UpdateRoles(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var req payloads.UpdateRolesRequest
 
-	err = ctx.BindJSON(&req)
+	err = ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.UpdateRoles(id, req.RoleIDs...)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) UpdatePhoto(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var req payloads.UpdatePhotoRequest
 
-	err = ctx.BindJSON(&req)
+	err = ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Decode base64 webp to bytes
 	unbased, err := base64.StdEncoding.DecodeString(req.PhotoBase64)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	// Decode bytes to image
 	reader := bytes.NewReader(unbased)
 	image, err := webp.Decode(reader, &decoder.Options{})
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	// Create our own file
 	imageName := "user" + fmt.Sprint(id)
 	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	defer f.Close()
 	// Encode image into file
@@ -301,124 +274,101 @@ func (c *Controller) UpdatePhoto(ctx *gin.Context) {
 
 	err = c.Model.UpdatePhoto(id, imageName)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) UpdateCV(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Retrieve the file
-	var req payloads.UpdateCVRequest
-	err = ctx.ShouldBind(&req)
+	file, err := ctx.FormFile("file")
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	// Check if file is .pdf
-	if filepath.Ext(req.File.Filename) != ".pdf" {
-		util.ErrorJSON(ctx, errors.New("file extension must be pdf"))
-		return
+	if filepath.Ext(file.Filename) != ".pdf" {
+		return util.ErrorJSON(ctx, errors.New("file extension must be pdf"))
 	}
 
-	// Open file
-	file, err := req.File.Open()
-	if err != nil {
-		util.ErrorJSON(ctx, err)
-	}
-	// Create our own file
+	// Save file in storage folder
 	fileName := "usercv" + fmt.Sprint(id)
-	f, err := os.OpenFile("./storage/users/"+fileName+".pdf", os.O_WRONLY|os.O_CREATE, 0666)
+	ctx.SaveFile(file, "./storage/users/"+fileName+".pdf")
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
-	defer f.Close()
-	// Save file in storage
-	io.Copy(f, file)
-	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", req.File.Filename, req.File.Size)
+	logger.Logger.Printf("user's cv saved. Name: %s | Size: %d", file.Filename, file.Size)
 
 	// Save fileName in DB
 	c.Model.UpdateCV(id, fileName)
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) Ban(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Ban(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var req payloads.BanRequest
-	err = ctx.ShouldBindJSON(&req)
+	err = ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.Ban(id, req.BanExpire)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) Unban(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Unban(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.Unban(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) Restore(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Restore(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.Restore(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Delete(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.Delete(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }

@@ -8,32 +8,29 @@ import (
 	"API-REST/services/logger"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
+	"github.com/gofiber/fiber/v2"
 )
 
 func Start() error {
 	// Build controllers
 	controllers.Build()
 
-	// Set GIN Mode
-	if conf.Env.GetString("ENVIRONMENT") == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	} else {
-		gin.SetMode(gin.DebugMode)
-	}
-
-	// Setup GIN api server
-	r := gin.Default()
-	r.MaxMultipartMemory = conf.Conf.GetInt64("maxMultiPartMemory")
+	// Setup Fiber api server
+	app := fiber.New(fiber.Config{
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
+	})
 
 	// Setup groups and middleware
-	api := r.Group(conf.Conf.GetString("apiBasePath"))
-	api.Use(middleware.EnableCORS)
+	api := app.Group(conf.Conf.GetString("apiBasePath"))
+	api.Use(middleware.CORS())
 
-	apiAuth := api.Group("/")
-	apiAuth.Use(middleware.CheckToken)
+	pub := api.Group("/")
+	pvt := api.Group("/")
+	pvt.Use(middleware.CheckToken)
 
-	api.GET("/status", func(ctx *gin.Context) {
+	api.Get("/status", func(ctx *fiber.Ctx) error {
 		appStatus := struct {
 			Status      string `json:"status"`
 			Environment string `json:"environment"`
@@ -44,60 +41,60 @@ func Start() error {
 			Version:     conf.Env.GetString("VERSION"),
 		}
 
-		util.WriteJSON(ctx, http.StatusOK, appStatus, "status")
+		return util.WriteJSON(ctx, http.StatusOK, appStatus, "status")
 	})
 
-	api.POST("/auth/login", controllers.User.Auth.Login)
-	apiAuth.GET("/auth", controllers.User.Auth.Get)
-	apiAuth.GET("/auth/photo", controllers.User.Auth.GetPhoto)
-	apiAuth.GET("/auth/cv", controllers.User.Auth.GetCV)
-	apiAuth.PUT("/auth", controllers.User.Auth.Update)
-	apiAuth.PUT("/auth/change-password", controllers.User.Auth.ChangePassword)
-	api.PUT("/auth/reset-password", controllers.User.Auth.ResetPassword)
-	apiAuth.PUT("/auth/photo", controllers.User.Auth.UpdatePhoto)
-	apiAuth.PUT("/auth/cv", controllers.User.Auth.UpdateCV)
-	apiAuth.DELETE("/auth", controllers.User.Auth.Delete)
+	pub.Post("/auth/login", controllers.User.Auth.Login)
+	pvt.Get("/auth", controllers.User.Auth.Get)
+	pvt.Get("/auth/photo", controllers.User.Auth.GetPhoto)
+	pvt.Get("/auth/cv", controllers.User.Auth.GetCV)
+	pvt.Put("/auth", controllers.User.Auth.Update)
+	pvt.Put("/auth/change-password", controllers.User.Auth.ChangePassword)
+	pub.Put("/auth/reset-password", controllers.User.Auth.ResetPassword)
+	pvt.Put("/auth/photo", controllers.User.Auth.UpdatePhoto)
+	pvt.Put("/auth/cv", controllers.User.Auth.UpdateCV)
+	pvt.Delete("/auth", controllers.User.Auth.Delete)
 
-	apiAuth.GET("/users", middleware.CheckPermission("users", "read"), controllers.User.GetAll)
-	apiAuth.GET("/users/:id", middleware.CheckPermission("users", "read"), controllers.User.Get)
-	apiAuth.GET("/users/:id/photo", middleware.CheckPermission("users", "read"), controllers.User.GetPhoto)
-	apiAuth.GET("/users/:id/cv", middleware.CheckPermission("users", "read"), controllers.User.GetCV)
-	api.POST("/users", controllers.User.Insert) // public registration
-	apiAuth.POST("/users/:id/roles", middleware.CheckPermission("users", "assign"), controllers.User.UpdateRoles)
-	apiAuth.PUT("/users/:id", middleware.CheckPermission("users", "update"), controllers.User.Update)
-	apiAuth.PUT("/users/:id/photo", middleware.CheckPermission("users", "update"), controllers.User.UpdatePhoto)
-	apiAuth.PUT("/users/:id/cv", middleware.CheckPermission("users", "update"), controllers.User.UpdateCV)
-	apiAuth.PUT("/users/:id/ban", middleware.CheckPermission("users", "ban"), controllers.User.Ban)
-	apiAuth.PUT("/users/:id/unban", middleware.CheckPermission("users", "ban"), controllers.User.Unban)
-	apiAuth.PUT("/users/:id/restore", middleware.CheckPermission("users", "delete"), controllers.User.Restore)
-	apiAuth.DELETE("/users/:id", middleware.CheckPermission("users", "delete"), controllers.User.Delete)
+	pvt.Get("/users", middleware.CheckPermission("users", "read"), controllers.User.GetAll)
+	pvt.Get("/users/:id", middleware.CheckPermission("users", "read"), controllers.User.Get)
+	pvt.Get("/users/:id/photo", middleware.CheckPermission("users", "read"), controllers.User.GetPhoto)
+	pvt.Get("/users/:id/cv", middleware.CheckPermission("users", "read"), controllers.User.GetCV)
+	pub.Post("/users", controllers.User.Insert) // public registration
+	pvt.Post("/users/:id/roles", middleware.CheckPermission("users", "assign"), controllers.User.UpdateRoles)
+	pvt.Put("/users/:id", middleware.CheckPermission("users", "update"), controllers.User.Update)
+	pvt.Put("/users/:id/photo", middleware.CheckPermission("users", "update"), controllers.User.UpdatePhoto)
+	pvt.Put("/users/:id/cv", middleware.CheckPermission("users", "update"), controllers.User.UpdateCV)
+	pvt.Put("/users/:id/ban", middleware.CheckPermission("users", "ban"), controllers.User.Ban)
+	pvt.Put("/users/:id/unban", middleware.CheckPermission("users", "ban"), controllers.User.Unban)
+	pvt.Put("/users/:id/restore", middleware.CheckPermission("users", "delete"), controllers.User.Restore)
+	pvt.Delete("/users/:id", middleware.CheckPermission("users", "delete"), controllers.User.Delete)
 
-	apiAuth.GET("/roles", middleware.CheckPermission("roles", "read"), controllers.Role.GetAll)
-	apiAuth.GET("/roles/:id", middleware.CheckPermission("roles", "read"), controllers.Role.Get)
-	apiAuth.POST("/roles", middleware.CheckPermission("roles", "create"), controllers.Role.Insert)
-	apiAuth.POST("/roles/:id/permissions", middleware.CheckPermission("roles", "assign"), controllers.Role.UpdatePermissions)
-	apiAuth.PUT("/roles/:id", middleware.CheckPermission("roles", "update"), controllers.Role.Update)
-	apiAuth.DELETE("/roles/:id", middleware.CheckPermission("roles", "delete"), controllers.Role.Delete)
+	pvt.Get("/roles", middleware.CheckPermission("roles", "read"), controllers.Role.GetAll)
+	pvt.Get("/roles/:id", middleware.CheckPermission("roles", "read"), controllers.Role.Get)
+	pvt.Post("/roles", middleware.CheckPermission("roles", "create"), controllers.Role.Insert)
+	pvt.Post("/roles/:id/permissions", middleware.CheckPermission("roles", "assign"), controllers.Role.UpdatePermissions)
+	pvt.Put("/roles/:id", middleware.CheckPermission("roles", "update"), controllers.Role.Update)
+	pvt.Delete("/roles/:id", middleware.CheckPermission("roles", "delete"), controllers.Role.Delete)
 
-	apiAuth.GET("/permissions", middleware.CheckPermission("permissions", "read"), controllers.Permission.GetAll)
-	apiAuth.GET("/permissions/:id", middleware.CheckPermission("permissions", "read"), controllers.Permission.Get)
-	apiAuth.POST("/permissions", middleware.CheckPermission("permissions", "create"), controllers.Permission.Insert)
-	apiAuth.PUT("/permissions/:id", middleware.CheckPermission("permissions", "update"), controllers.Permission.Update)
-	apiAuth.DELETE("/permissions/:id", middleware.CheckPermission("permissions", "delete"), controllers.Permission.Delete)
+	pvt.Get("/permissions", middleware.CheckPermission("permissions", "read"), controllers.Permission.GetAll)
+	pvt.Get("/permissions/:id", middleware.CheckPermission("permissions", "read"), controllers.Permission.Get)
+	pvt.Post("/permissions", middleware.CheckPermission("permissions", "create"), controllers.Permission.Insert)
+	pvt.Put("/permissions/:id", middleware.CheckPermission("permissions", "update"), controllers.Permission.Update)
+	pvt.Delete("/permissions/:id", middleware.CheckPermission("permissions", "delete"), controllers.Permission.Delete)
 
-	apiAuth.GET("/assets", middleware.CheckPermission("assets", "read"), controllers.Asset.GetAll)
-	apiAuth.GET("/assets/:id", middleware.CheckPermission("assets", "read"), controllers.Asset.Get)
-	apiAuth.GET("/assets/:id/attributes", middleware.CheckPermission("assets", "read"), controllers.Asset.GetWithAttributes)
-	apiAuth.GET("/assets/names", middleware.CheckPermission("assets", "read"), controllers.Asset.GetNames)
-	apiAuth.POST("/assets", middleware.CheckPermission("assets", "create"), controllers.Asset.Insert)
-	apiAuth.PUT("/assets/:id", middleware.CheckPermission("assets", "update"), controllers.Asset.Update)
-	apiAuth.DELETE("/assets/:id", middleware.CheckPermission("assets", "delete"), controllers.Asset.Delete)
+	pvt.Get("/assets", middleware.CheckPermission("assets", "read"), controllers.Asset.GetAll)
+	pvt.Get("/assets/:id", middleware.CheckPermission("assets", "read"), controllers.Asset.Get)
+	pvt.Get("/assets/:id/attributes", middleware.CheckPermission("assets", "read"), controllers.Asset.GetWithAttributes)
+	pvt.Get("/assets/names", middleware.CheckPermission("assets", "read"), controllers.Asset.GetNames)
+	pvt.Post("/assets", middleware.CheckPermission("assets", "create"), controllers.Asset.Insert)
+	pvt.Put("/assets/:id", middleware.CheckPermission("assets", "update"), controllers.Asset.Update)
+	pvt.Delete("/assets/:id", middleware.CheckPermission("assets", "delete"), controllers.Asset.Delete)
 
-	apiAuth.GET("/attributes", middleware.CheckPermission("attributes", "read"), controllers.Attribute.GetAll)
-	apiAuth.GET("/attributes/:id", middleware.CheckPermission("attributes", "read"), controllers.Attribute.Get)
-	apiAuth.POST("/attributes", middleware.CheckPermission("attributes", "create"), controllers.Attribute.Insert)
-	apiAuth.PUT("/attributes/:id", middleware.CheckPermission("attributes", "update"), controllers.Attribute.Update)
-	apiAuth.DELETE("/attributes/:id", middleware.CheckPermission("attributes", "delete"), controllers.Attribute.Delete)
+	pvt.Get("/attributes", middleware.CheckPermission("attributes", "read"), controllers.Attribute.GetAll)
+	pvt.Get("/attributes/:id", middleware.CheckPermission("attributes", "read"), controllers.Attribute.Get)
+	pvt.Post("/attributes", middleware.CheckPermission("attributes", "create"), controllers.Attribute.Insert)
+	pvt.Put("/attributes/:id", middleware.CheckPermission("attributes", "update"), controllers.Attribute.Update)
+	pvt.Delete("/attributes/:id", middleware.CheckPermission("attributes", "delete"), controllers.Attribute.Delete)
 	// ...
 
 	// Log start
@@ -106,5 +103,5 @@ func Start() error {
 	logger.Logger.Printf("Starting server on http://%s:%s\n", host, port)
 
 	// Run server
-	return r.Run(conf.Env.GetString("HOST") + ":" + port)
+	return app.Listen(conf.Env.GetString("HOST") + ":" + port)
 }

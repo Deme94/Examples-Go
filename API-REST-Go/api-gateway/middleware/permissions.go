@@ -7,41 +7,34 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
-func CheckPermission(resource string, operation string) gin.HandlerFunc {
+func CheckPermission(resource string, operation string) func(ctx *fiber.Ctx) error {
 
-	return func(ctx *gin.Context) {
-		claimerID := ctx.GetInt("Claimer-ID")
+	return func(ctx *fiber.Ctx) error {
+		claimerID := ctx.Locals("Claimer-ID").(int)
 		claimerRoles, err := controllers.User.Auth.GetRoles(claimerID)
 		if err != nil {
-			util.ErrorJSON(ctx, err, http.StatusForbidden)
-			ctx.Abort()
-			return
+			return util.ErrorJSON(ctx, err, http.StatusForbidden)
 		}
 
 		for _, role := range claimerRoles {
 			if role == "admin" {
-				ctx.Next()
-				return
+				return ctx.Next()
 			}
 		}
 
 		hasPerm, err := controllers.User.Auth.HasPermission(claimerID, resource, operation)
 		if err != nil {
-			util.ErrorJSON(ctx, err, http.StatusForbidden)
-			ctx.Abort()
-			return
+			return util.ErrorJSON(ctx, err, http.StatusForbidden)
 		}
 
 		if !hasPerm {
 			logger.Logger.Println("USER TRIED TO ACCESS RESTRINGED OPERATION id:", claimerID)
-			util.ErrorJSON(ctx, errors.New("forbidden operation - user has not permission"), http.StatusForbidden)
-			ctx.Abort()
-			return
+			return util.ErrorJSON(ctx, errors.New("forbidden operation - user has not permission"), http.StatusForbidden)
 		}
 
-		ctx.Next()
+		return ctx.Next()
 	}
 }

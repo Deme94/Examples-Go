@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
-func EnableCORS(ctx *gin.Context) {
-	ctx.Header("Access-Control-Allow-Origin", "*")
-	ctx.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	ctx.Next()
+func CORS() func(*fiber.Ctx) error {
+	return cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	})
 }

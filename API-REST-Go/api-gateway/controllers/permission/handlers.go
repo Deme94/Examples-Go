@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
-func (c *Controller) GetAll(ctx *gin.Context) {
+func (c *Controller) GetAll(ctx *fiber.Ctx) error {
 
 	// Query parameters
 	predicates := psql.Predicates{}
@@ -23,17 +23,14 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 	if len(pageParam) != 0 && len(pageSizeParam) != 0 {
 		page, err := strconv.Atoi(pageParam)
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 		pageSize, err := strconv.Atoi(pageSizeParam)
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 		if page == 0 || pageSize == 0 {
-			util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
-			return
+			return util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
 		}
 		limit := pageSize
 		offset := (page - 1) * pageSize
@@ -45,8 +42,7 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 
 	permissions, err := c.Model.GetAll(&predicates)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var all []*payloads.GetResponse
@@ -59,31 +55,28 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 	}
 
 	allResponse := payloads.GetAllResponse{Permissions: all}
-	util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
+	return util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
 }
-func (c *Controller) Get(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Get(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	permission, err := c.Model.Get(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, permission, "permission")
+	return util.WriteJSON(ctx, http.StatusOK, permission, "permission")
 }
-func (c *Controller) Insert(ctx *gin.Context) {
+func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	var req payloads.InsertRequest
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.Insert(&permission.Permission{
@@ -91,26 +84,23 @@ func (c *Controller) Insert(ctx *gin.Context) {
 		Operation: req.Operation,
 	})
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, "permission created successfully", "response")
+	return util.WriteJSON(ctx, http.StatusOK, "permission created successfully", "response")
 }
-func (c *Controller) Update(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Update(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var req payloads.UpdateRequest
 
-	err = ctx.BindJSON(&req)
+	err = ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var permission permission.Permission
@@ -120,25 +110,22 @@ func (c *Controller) Update(ctx *gin.Context) {
 
 	err = c.Model.Update(&permission)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) Delete(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *Controller) Delete(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	err = c.Model.Delete(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, true, "OK")
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }

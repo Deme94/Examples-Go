@@ -7,18 +7,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func (c *Controller) GetAll(ctx *gin.Context) {
+func (c *Controller) GetAll(ctx *fiber.Ctx) error {
 
 	// Query parameters
 	filterOptions := make(map[string]interface{})
-	fromDate, toDate, err := c.getDateRangeFromQuery(ctx.Request.URL.Query())
+	fromDate, toDate, err := c.getDateRange(ctx.Query("fromDate"), ctx.Query("toDate"))
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 	nameParam := ctx.Query("name")
 	labelParam := ctx.Query("label")
@@ -32,38 +31,34 @@ func (c *Controller) GetAll(ctx *gin.Context) {
 
 	attributes, err := c.Model.GetAll(fromDate, toDate, filterOptions)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, attributes, "attributes")
+	return util.WriteJSON(ctx, http.StatusOK, attributes, "attributes")
 }
-func (c *Controller) Get(ctx *gin.Context) {
-	id := ctx.Param("id")
+func (c *Controller) Get(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
 
 	a, err := c.Model.Get(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, a, "attribute")
+	return util.WriteJSON(ctx, http.StatusOK, a, "attribute")
 }
-func (c *Controller) Insert(ctx *gin.Context) {
+func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	var req []payloads.AttributeRequest
 	var attributes []*attribute.Attribute
 
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	for _, a := range req {
 		timestamp, err := time.Parse("2006-01-02T15:04:05", a.Timestamp)
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 		attributes = append(attributes,
 			&attribute.Attribute{
@@ -82,40 +77,35 @@ func (c *Controller) Insert(ctx *gin.Context) {
 	if len(attributes) == 1 {
 		err = c.Model.Insert(attributes[0])
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 	} else {
 		err = c.Model.InsertMany(attributes)
 		if err != nil {
-			util.ErrorJSON(ctx, err)
-			return
+			return util.ErrorJSON(ctx, err)
 		}
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, "attributes inserted successfully", "response")
+	return util.WriteJSON(ctx, http.StatusOK, "attributes inserted successfully", "response")
 }
-func (c *Controller) Update(ctx *gin.Context) {
-	id := ctx.Param("id")
+func (c *Controller) Update(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
 
 	var req payloads.AttributeRequest
-	err := ctx.BindJSON(&req)
+	err := ctx.BodyParser(&req)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	timestamp, err := time.Parse("2006-01-02T15:04:05", req.Timestamp)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	var a attribute.Attribute
 	a.ID, err = primitive.ObjectIDFromHex(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
 	a.Metadata = attribute.AttributeMetadata{
@@ -129,20 +119,18 @@ func (c *Controller) Update(ctx *gin.Context) {
 
 	err = c.Model.Update(&a)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, "attribute updated successfully", "response")
+	return util.WriteJSON(ctx, http.StatusOK, "attribute updated successfully", "response")
 }
-func (c *Controller) Delete(ctx *gin.Context) {
-	id := ctx.Param("id")
+func (c *Controller) Delete(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
 
 	err := c.Model.Delete(id)
 	if err != nil {
-		util.ErrorJSON(ctx, err)
-		return
+		return util.ErrorJSON(ctx, err)
 	}
 
-	util.WriteJSON(ctx, http.StatusOK, "attribute deleted successfully", "response")
+	return util.WriteJSON(ctx, http.StatusOK, "attribute deleted successfully", "response")
 }
