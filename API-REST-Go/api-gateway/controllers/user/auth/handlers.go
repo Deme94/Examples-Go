@@ -102,28 +102,8 @@ func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
 		return util.ErrorJSON(ctx, err)
 	}
 
-	// Get webp file
-	f, err := os.OpenFile("./storage/users/"+imageName+".webp", os.O_RDWR, 0644)
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-	defer f.Close()
-	// Decode webp file to image
-	image, err := webp.Decode(f, &decoder.Options{})
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-	// Encode image into buffer
-	var buf bytes.Buffer
-	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 75)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	webp.Encode(&buf, image, options)
-	// Get bytes and encode to base64
-	imageBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-
-	return util.WriteJSON(ctx, http.StatusOK, imageBase64, "photo")
+	filePath := "./storage/users/" + imageName + ".webp"
+	return ctx.SendFile(filePath)
 }
 func (c *Controller) GetCV(ctx *fiber.Ctx) error {
 	claimerID := ctx.Locals("Claimer-ID").(int)
