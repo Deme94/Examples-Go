@@ -10,16 +10,6 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type QueryParams struct {
-	Page     int    `params:"page"`
-	PageSize int    `params:"pageSize"`
-	Deleted  bool   `params:"deleted"`
-	Banned   bool   `params:"banned"`
-	Year     int    `params:"year"`
-	Month    int    `params:"month"`
-	Phone    string `params:"phone"`
-}
-
 type InsertRequest struct {
 	Username  string `json:"username" validate:"required"`
 	Email     string `json:"email" validate:"required,email,min=6,max=32"`
