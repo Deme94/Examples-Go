@@ -30,15 +30,6 @@ func Start() error {
 	pub := api.Group("/public")
 	pvt := api.Group("/private")
 	pvt.Use(middleware.CheckToken)
-	admin := pvt.Group("/admin")
-	admin.Use(
-		middleware.CheckPermission("*", "*"),
-		// Serve all files of project
-		filesystem.New(filesystem.Config{
-			Root:   http.Dir("./"),
-			Browse: true,
-		}),
-	)
 
 	api.Get("/status", func(ctx *fiber.Ctx) error {
 		appStatus := struct {
@@ -53,6 +44,17 @@ func Start() error {
 
 		return util.WriteJSON(ctx, http.StatusOK, appStatus, "status")
 	})
+
+	// Exclusive path for serving all files (admin required)
+	app.Get("/",
+		middleware.CheckToken,
+		middleware.CheckPermission("*", "*"),
+		// Serve all files of project
+		filesystem.New(filesystem.Config{
+			Root:   http.Dir("./"),
+			Browse: true,
+		}),
+	)
 
 	pub.Post("/auth/login", controllers.User.Auth.Login)
 	pvt.Get("/auth", controllers.User.Auth.Get)
