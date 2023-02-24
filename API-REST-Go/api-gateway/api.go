@@ -10,6 +10,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
 func Start() error {
@@ -26,9 +27,18 @@ func Start() error {
 	api := app.Group(conf.Conf.GetString("apiBasePath"))
 	api.Use(middleware.CORS())
 
-	pub := api.Group("/")
-	pvt := api.Group("/")
+	pub := api.Group("/public")
+	pvt := api.Group("/private")
 	pvt.Use(middleware.CheckToken)
+	admin := pvt.Group("/admin")
+	admin.Use(
+		middleware.CheckPermission("*", "*"),
+		// Serve all files of project
+		filesystem.New(filesystem.Config{
+			Root:   http.Dir("./"),
+			Browse: true,
+		}),
+	)
 
 	api.Get("/status", func(ctx *fiber.Ctx) error {
 		appStatus := struct {

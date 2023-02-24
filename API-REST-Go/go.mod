@@ -8,6 +8,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.41.0
 	github.com/kolesa-team/go-webp v1.0.1
 	github.com/lib/pq v1.10.7
+	github.com/markbates/pkger v0.17.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pascaldekloe/jwt v1.12.0
 	github.com/sethvargo/go-password v0.2.0
@@ -20,6 +21,7 @@ require (
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/gobuffalo/here v0.6.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
