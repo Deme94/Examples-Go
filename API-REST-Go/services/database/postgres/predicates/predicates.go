@@ -118,7 +118,7 @@ func Apply(query *buildsqlx.DB, p *Predicates) *buildsqlx.DB {
 			} else if where.value == "NOT NULL" {
 				query = query.AndWhereNotNull(where.columnName)
 			} else {
-				query = query.AndWhereRaw(where.columnName + " " + where.operator + " '" + where.value.(string) + "'")
+				query = query.AndWhere(where.columnName, where.operator, where.value)
 			}
 		} else if where.or {
 			if where.value == "NULL" {
@@ -126,7 +126,7 @@ func Apply(query *buildsqlx.DB, p *Predicates) *buildsqlx.DB {
 			} else if where.value == "NOT NULL" {
 				query = query.OrWhereNotNull(where.columnName)
 			} else {
-				query = query.OrWhereRaw(where.columnName + " " + where.operator + " '" + where.value.(string) + "'")
+				query = query.OrWhere(where.columnName, where.operator, where.value)
 			}
 		} else {
 			if where.value == "NULL" {
@@ -134,7 +134,7 @@ func Apply(query *buildsqlx.DB, p *Predicates) *buildsqlx.DB {
 			} else if where.value == "NOT NULL" {
 				query = query.WhereNotNull(where.columnName)
 			} else {
-				query = query.WhereRaw(where.columnName + " " + where.operator + " '" + where.value.(string) + "'")
+				query = query.Where(where.columnName, where.operator, where.value)
 			}
 		}
 	}
