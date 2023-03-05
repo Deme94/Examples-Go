@@ -29,6 +29,12 @@ func (m *Model) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[s
 			filter = append(filter, bson.E{"name", name})
 		}
 		// other options ...
+		// example more bson.D
+		// filter = append(filter, bson.E{"key1", 1},
+		// 	bson.E{"$or", []interface{}{
+		// 		bson.D{{"key2", 2}},
+		// 		bson.D{{"key3", 2}},
+		// 	}})
 	}
 
 	var assets []*Asset
