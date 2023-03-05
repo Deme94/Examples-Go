@@ -23,49 +23,67 @@ import (
 )
 
 func (c *Controller) GetAll(ctx *fiber.Ctx) error {
-
 	// Query parameters
 	predicates := psql.Predicates{}
-	pageParam := ctx.Query("page")
-	pageSizeParam := ctx.Query("pageSize")
-	yearParam := ctx.Query("year")
-	deletedParam := ctx.Query("deleted")
-	if len(pageParam) != 0 && len(pageSizeParam) != 0 {
-		page, err := strconv.Atoi(pageParam)
-		if err != nil {
-			return util.ErrorJSON(ctx, err)
-		}
-		pageSize, err := strconv.Atoi(pageSizeParam)
-		if err != nil {
-			return util.ErrorJSON(ctx, err)
-		}
-		if page == 0 || pageSize == 0 {
+	var queryParams payloads.QueryParams
+	err := ctx.QueryParser(&queryParams)
+	if err != nil {
+		return util.ErrorJSON(ctx, err)
+	}
+	if queryParams.Page != nil && queryParams.PageSize != nil {
+		if *queryParams.Page == 0 || *queryParams.PageSize == 0 {
 			return util.ErrorJSON(ctx, errors.New("page and pageSize params must be greater than 0"))
 		}
-		limit := pageSize
-		offset := (page - 1) * pageSize
+		limit := *queryParams.PageSize
+		offset := (*queryParams.Page - 1) * *queryParams.PageSize
 		predicates.Offset(offset).Limit(limit)
 	}
-	if len(yearParam) != 0 {
-		startDate := fmt.Sprint(yearParam, "-01-01")
-		endDate := fmt.Sprint(yearParam, "-12-31")
-		predicates.Where("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
+	if queryParams.Any != nil {
+		like := "'%" + *queryParams.Any + "%'"
+		// SPECIAL CASE: SQL BUILDER PACKAGE IS BUGGED, SO THIS IS A HACK TO GROUP WHERE CLAUSES WITH PARENTHESES!!
+		predicates.Where("(username LIKE "+like+
+			" or email LIKE "+like+
+			" or nick LIKE "+like+
+			" or address LIKE "+like+
+			" or first_name LIKE "+like+
+			" or last_name LIKE "+like+")", "AND true=", "true")
 	}
-	if len(deletedParam) != 0 {
-		deleted, err := strconv.ParseBool(deletedParam)
-		if err == nil {
-			if predicates.HasWhere() {
-				if deleted {
-					predicates.AndWhereNotNull("deleted_at")
-				} else {
-					predicates.AndWhereNull("deleted_at")
-				}
+	if queryParams.Year != nil {
+		startDate := fmt.Sprint(*queryParams.Year, "-01-01")
+		endDate := fmt.Sprint(*queryParams.Year, "-12-31")
+		if predicates.HasWhere() {
+			predicates.AndWhere("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
+		} else {
+			predicates.Where("created_at", ">=", startDate).AndWhere("created_at", "<=", endDate)
+		}
+	}
+	if queryParams.Deleted != nil {
+		if predicates.HasWhere() {
+			if *queryParams.Deleted {
+				predicates.AndWhereNotNull("deleted_at")
 			} else {
-				if deleted {
-					predicates.WhereNotNull("deleted_at")
-				} else {
-					predicates.WhereNull("deleted_at")
-				}
+				predicates.AndWhereNull("deleted_at")
+			}
+		} else {
+			if *queryParams.Deleted {
+				predicates.WhereNotNull("deleted_at")
+			} else {
+				predicates.WhereNull("deleted_at")
+			}
+		}
+	}
+	if queryParams.Banned != nil {
+		if predicates.HasWhere() {
+			if *queryParams.Banned {
+				predicates.AndWhereNotNull("ban_date")
+			} else {
+				predicates.AndWhereNull("ban_date")
+			}
+		} else {
+			if *queryParams.Banned {
+				predicates.WhereNotNull("ban_date")
+			} else {
+				predicates.WhereNull("ban_date")
 			}
 		}
 	}

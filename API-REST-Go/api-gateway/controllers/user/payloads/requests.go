@@ -4,10 +4,13 @@ import (
 	"time"
 )
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password" validate:"required"`
+type QueryParams struct {
+	Any      *string `query:"any"`
+	Page     *int    `query:"page"`
+	PageSize *int    `query:"pageSize"`
+	Deleted  *bool   `query:"deleted"`
+	Banned   *bool   `query:"banned"`
+	Year     *int    `query:"year"`
 }
 
 type InsertRequest struct {
