@@ -10,6 +10,10 @@ mailPort: 25
 mailUsername: "username"
 mailPassword: "secret"
 mailFromNoReply: "noreplay@apirestgo.com"
+# SMS
+twilioAccountSID: "AC30caf963a9903aeedc78826315f3b296" # check credentials and test credentials: https://console.twilio.com/us1/account/keys-credentials/api-keys?frameUrl=%2Fconsole%2Fproject%2Fapi-keys%3Fx-target-region%3Dus1
+twilioAuthToken: "b91be3885991cafa3d6b448fbd79d615"
+twilioPhone: "+15005550006" # check test numbers: https://www.twilio.com/es-mx/blog/como-utilizar-las-credenciales-de-prueba-de-twilio-con-numeros-de-telefono-magicos
 # DB
 permissions:
   users: [read, assign, update, delete]
