@@ -1,7 +1,12 @@
 package role
 
-import "API-REST/services/database/postgres/models/role"
+import (
+	"API-REST/services/database/postgres/models/role"
+
+	"github.com/go-playground/validator/v10"
+)
 
 type Controller struct {
-	Model *role.Model
+	Validate *validator.Validate
+	Model    *role.Model
 }

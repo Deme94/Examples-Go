@@ -158,6 +158,10 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	hashedPassword, err := c.HashPassword(req.Password)
 	if err != nil {
@@ -193,6 +197,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	var u user.User
 	u.ID = id
@@ -222,6 +230,10 @@ func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	err = c.Model.UpdateRoles(id, req.RoleIDs...)
 	if err != nil {
@@ -242,6 +254,10 @@ func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
 	err = ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	// Decode base64 webp to bytes

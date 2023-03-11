@@ -3,10 +3,13 @@ package asset
 import (
 	"API-REST/services/database/mongo/models/asset"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Controller struct {
-	Model *asset.Model
+	Validate *validator.Validate
+	Model    *asset.Model
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------

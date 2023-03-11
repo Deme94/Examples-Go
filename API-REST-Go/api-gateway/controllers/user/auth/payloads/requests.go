@@ -3,8 +3,8 @@ package payloads
 import "mime/multipart"
 
 type LoginRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	Username string `json:"username" validate:"required_without=Email"`
+	Email    string `json:"email" validate:"required_without=Username"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -30,7 +30,7 @@ type UpdateRolesRequest struct {
 }
 
 type UpdatePhotoRequest struct {
-	PhotoBase64 string `json:"photo_base64" validate:"required"`
+	PhotoBase64 string `json:"photo_base64" validate:"required,base64"`
 }
 
 type UpdateCVRequest struct {

@@ -77,6 +77,10 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	err = c.Model.Insert(&role.Role{Name: req.Name})
 	if err != nil {
@@ -97,6 +101,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	err = ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	var role role.Role
@@ -122,6 +130,10 @@ func (c *Controller) UpdatePermissions(ctx *fiber.Ctx) error {
 	err = ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	err = c.Model.UpdatePermissions(id, req.PermissionIDs...)

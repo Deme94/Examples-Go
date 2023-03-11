@@ -80,6 +80,10 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	for _, a := range req {
 		date, err := time.Parse("2006-01-02", a.Date)
@@ -110,6 +114,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	err := ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	date, err := time.Parse("2006-01-02", req.Date)

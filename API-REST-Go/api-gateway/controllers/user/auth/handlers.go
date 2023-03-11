@@ -28,6 +28,10 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	var u *user.User
 	if req.Email != "" {
@@ -124,6 +128,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	var u user.User
 	u.ID = claimerID
@@ -148,6 +156,10 @@ func (c *Controller) ChangePassword(ctx *fiber.Ctx) error {
 	err := ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	hashedPassword, err := c.Model.GetPassword(claimerID)
@@ -178,6 +190,10 @@ func (c *Controller) ResetPassword(ctx *fiber.Ctx) error {
 	err := ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	u, err := c.Model.GetByEmailWithPassword(req.Email)
@@ -211,6 +227,10 @@ func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	err = c.Model.UpdateRoles(claimerID, req.RoleIDs...)
 	if err != nil {
@@ -227,6 +247,10 @@ func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
 	err := ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	// Decode base64 webp to bytes

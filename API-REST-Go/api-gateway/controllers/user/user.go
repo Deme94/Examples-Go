@@ -4,12 +4,14 @@ import (
 	"API-REST/api-gateway/controllers/user/auth"
 	"API-REST/services/database/postgres/models/user"
 
+	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Controller struct {
-	Model *user.Model
-	Auth  *auth.Controller
+	Validate *validator.Validate
+	Model    *user.Model
+	Auth     *auth.Controller
 }
 
 func (c *Controller) HashPassword(password string) (string, error) {

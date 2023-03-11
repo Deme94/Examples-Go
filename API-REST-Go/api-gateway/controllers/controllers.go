@@ -9,6 +9,8 @@ import (
 	"API-REST/api-gateway/controllers/user/auth"
 	mongo "API-REST/services/database/mongo/models"
 	psql "API-REST/services/database/postgres/models"
+
+	"github.com/go-playground/validator/v10"
 )
 
 var (
@@ -21,10 +23,12 @@ var (
 )
 
 func Build() {
-	User = &user.Controller{Model: psql.User, Auth: &auth.Controller{Model: psql.User}}
-	Role = &role.Controller{Model: psql.Role}
-	Permission = &permission.Controller{Model: psql.Permission}
-	Asset = &asset.Controller{Model: mongo.Asset}
-	Attribute = &attribute.Controller{Model: mongo.Attribute}
+	validate := validator.New()
+
+	User = &user.Controller{Validate: validate, Model: psql.User, Auth: &auth.Controller{Validate: validate, Model: psql.User}}
+	Role = &role.Controller{Validate: validate, Model: psql.Role}
+	Permission = &permission.Controller{Validate: validate, Model: psql.Permission}
+	Asset = &asset.Controller{Validate: validate, Model: mongo.Asset}
+	Attribute = &attribute.Controller{Validate: validate, Model: mongo.Attribute}
 	// ...
 }

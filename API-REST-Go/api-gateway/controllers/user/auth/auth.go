@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
 
@@ -15,7 +16,8 @@ import (
 )
 
 type Controller struct {
-	Model *user.Model
+	Validate *validator.Validate
+	Model    *user.Model
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------

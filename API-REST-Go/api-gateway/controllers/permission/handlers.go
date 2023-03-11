@@ -78,6 +78,10 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
 	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
 
 	err = c.Model.Insert(&permission.Permission{
 		Resource:  req.Resource,
@@ -101,6 +105,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	err = ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	var permission permission.Permission

@@ -3,10 +3,13 @@ package attribute
 import (
 	"API-REST/services/database/mongo/models/attribute"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Controller struct {
-	Model *attribute.Model
+	Validate *validator.Validate
+	Model    *attribute.Model
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
