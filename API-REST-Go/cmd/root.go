@@ -8,6 +8,7 @@ import (
 	"API-REST/services/conf"
 	"API-REST/services/database"
 	"API-REST/services/logger"
+	"API-REST/services/mail"
 	"log"
 	"os"
 
@@ -38,6 +39,14 @@ var rootCmd = &cobra.Command{
 			log.Fatal("\033[31m"+"LOGGING SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
 		log.Println("\033[32m" + "LOGGING SERVICE IS RUNNING" + "\033[0m")
+
+		// Mail
+		log.Println("Loading mail service...")
+		err = mail.Setup()
+		if err != nil {
+			log.Fatal("\033[31m"+"MAIL SERVICE FAILED"+"\033[0m"+" -> ", err)
+		}
+		log.Println("\033[32m" + "MAIL SERVICE IS RUNNING" + "\033[0m")
 
 		// DB
 		log.Println("Loading database service...")

@@ -4,6 +4,12 @@ apiBasePath: "/api/v1"
 logDir: "./logs"
 logFileName: "log"
 logFileExt: "txt"
+# Mail
+mailHost: "smtp.freesmtpservers.com" # check mails here: https://www.wpoven.com/tools/free-smtp-server-for-testing
+mailPort: 25
+mailUsername: "username"
+mailPassword: "secret"
+mailFromNoReply: "noreplay@apirestgo.com"
 # DB
 permissions:
   users: [read, assign, update, delete]
