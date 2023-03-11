@@ -2,7 +2,6 @@ package sms
 
 import (
 	"API-REST/services/conf"
-	"os"
 
 	twilio "github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
@@ -11,19 +10,10 @@ import (
 var client *twilio.RestClient
 
 func Setup() error {
-	sid := conf.Conf.GetString("twilioAccountSID")
-	token := conf.Conf.GetString("twilioAuthToken")
-
-	err := os.Setenv("TWILIO_ACCOUNT_SID", sid)
-	if err != nil {
-		return err
-	}
-	err = os.Setenv("TWILIO_AUTH_TOKEN", token)
-	if err != nil {
-		return err
-	}
-
-	client = twilio.NewRestClient()
+	client = twilio.NewRestClientWithParams(twilio.ClientParams{
+		Username: conf.Conf.GetString("twilioAccountSID"),
+		Password: conf.Conf.GetString("twilioAuthToken"),
+	})
 
 	return nil
 }
