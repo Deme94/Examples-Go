@@ -3,38 +3,29 @@ package local
 import (
 	"API-REST/services/conf"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 )
 
 type Storage struct {
 	storageDir string
-	maxSize    int64
+	maxSize    int
 }
 
 func Setup(s *Storage) error {
 	s = &Storage{
 		storageDir: conf.Conf.GetString("storage.local.rootDir"),
-		maxSize:    conf.Conf.GetInt64("storage.local.maxSize"),
+		maxSize:    conf.Conf.GetInt("storage.local.maxSize"),
 	}
 
+	b, _ := ioutil.ReadFile("conf.yaml")
+	s.SaveFile("ola", b)
 	return nil
 }
 
-func (s *Storage) SaveFile(filename string, f *os.File) error {
-	// Resets read offset, just in case
-	_, err := f.Seek(0, 0)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
+func (s *Storage) SaveFile(filename string, b []byte) error {
 	// Check file size
-	stat, err := f.Stat()
-	if err != nil {
-		return err
-	}
-	size := stat.Size()
+	size := len(b)
 	if size > s.maxSize {
 		return fmt.Errorf("file size too big: %d bytes (max=%d)", size, s.maxSize)
 	}
@@ -46,34 +37,21 @@ func (s *Storage) SaveFile(filename string, f *os.File) error {
 	}
 	defer out.Close()
 
-	// make a buffer to keep chunks that are read
-	buf := make([]byte, 1024)
-	for {
-		// read a chunk
-		n, err := f.Read(buf)
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if n == 0 {
-			break
-		}
-
-		// write a chunk
-		_, err = out.Write(buf[:n])
-		if err != nil {
-			return err
-		}
+	// write content into output file
+	_, err = out.Write(b)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (s *Storage) GetFile(filename string) (*os.File, error) {
-	f, err := os.Open(s.storageDir + "/" + filename)
+func (s *Storage) GetFile(filename string) ([]byte, error) {
+	b, err := ioutil.ReadFile(s.storageDir + "/" + filename)
 	if err != nil {
 		return nil, err
 	}
-	return f, nil
+	return b, nil
 }
 
 func (s *Storage) DeleteFile(filename string) error {
