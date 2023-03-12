@@ -38,7 +38,7 @@ CREATE TABLE roles (
    id serial PRIMARY KEY,
    name VARCHAR (50) UNIQUE NOT NULL
 );
-INSERT INTO roles (name) VALUES ('admin'); -- Insert admin as default role
+INSERT INTO roles (name) VALUES ('superadmin'); -- Insert superadmin as default role
 
 -- Permissions
 CREATE TABLE permissions (

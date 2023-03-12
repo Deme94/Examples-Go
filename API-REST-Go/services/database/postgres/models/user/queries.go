@@ -443,17 +443,17 @@ func (m *Model) Insert(u *User) error {
 			return err
 		}
 
-		// get admin role id
-		var adminID int
-		row = tx.QueryRow("SELECT id FROM roles WHERE name = 'admin';")
-		err = row.Scan(&adminID)
+		// get superadmin role id
+		var superadminID int
+		row = tx.QueryRow("SELECT id FROM roles WHERE name = 'superadmin';")
+		err = row.Scan(&superadminID)
 		if err != nil {
 			return err
 		}
 
 		// Assign role to user (insert users_roles)
 		_, err = tx.Exec("INSERT INTO users_roles (user_id, role_id) VALUES " +
-			"(" + fmt.Sprint(userID) + ", " + fmt.Sprint(adminID) + ");")
+			"(" + fmt.Sprint(userID) + ", " + fmt.Sprint(superadminID) + ");")
 		if err != nil {
 			return err
 		}

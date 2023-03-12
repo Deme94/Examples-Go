@@ -11,8 +11,8 @@ permissions:
   permissions: [read, create, update, delete]
   assets: [read, create, update, delete]
   attributes: [read, create, update, delete]
-roles: # first user created is admin
-  manager:
+roles: # first user created is superadmin
+  admin:
     users: [read, assign, update, delete]
     roles: [read, create, assign, update, delete]
     permissions: [read, create, update, delete]

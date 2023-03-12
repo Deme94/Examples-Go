@@ -45,7 +45,7 @@ func Start() error {
 		return util.WriteJSON(ctx, http.StatusOK, appStatus, "status")
 	})
 
-	// Exclusive path for serving all files (admin required)
+	// Exclusive path for serving all files (superadmin required)
 	app.Get("/",
 		middleware.CheckToken,
 		middleware.CheckPermission("*", "*"),

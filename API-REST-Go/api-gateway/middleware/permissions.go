@@ -20,7 +20,7 @@ func CheckPermission(resource string, operation string) func(ctx *fiber.Ctx) err
 		}
 
 		for _, role := range claimerRoles {
-			if role == "admin" {
+			if role == "superadmin" {
 				return ctx.Next()
 			}
 		}
