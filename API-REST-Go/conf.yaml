@@ -28,3 +28,6 @@ storage:
   local: 
     rootDir: "./storage"
     maxSize: 10485760 # bytes
+  gcs: # google cloud storage
+    bucket: "apirestgo_test_bucket"
+    maxSize: 10485760 # bytes
