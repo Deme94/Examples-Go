@@ -18,8 +18,6 @@ func Setup(s *Storage) error {
 		maxSize:    conf.Conf.GetInt("storage.local.maxSize"),
 	}
 
-	b, _ := ioutil.ReadFile("conf.yaml")
-	s.SaveFile("ola", b)
 	return nil
 }
 
