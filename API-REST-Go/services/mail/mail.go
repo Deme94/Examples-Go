@@ -20,11 +20,11 @@ type Mail struct {
 func Setup() error {
 	var err error
 	client, err = mail.NewClient(
-		conf.Conf.GetString("mailHost"),
-		mail.WithPort(conf.Conf.GetInt("mailPort")),
+		conf.Env.GetString("MAIL_HOST"),
+		mail.WithPort(conf.Env.GetInt("MAIL_PORT")),
 		//mail.WithSMTPAuth(mail.SMTPAuthPlain), // uncomment this when using real host with required smtp auth
-		mail.WithUsername(conf.Conf.GetString("mailUsername")),
-		mail.WithPassword(conf.Conf.GetString("mailPassword")),
+		mail.WithUsername(conf.Env.GetString("MAIL_USERNAME")),
+		mail.WithPassword(conf.Env.GetString("MAIL_PASSWORD")),
 		mail.WithTLSPolicy(mail.TLSOpportunistic),
 	)
 	return err

@@ -11,8 +11,8 @@ var client *twilio.RestClient
 
 func Setup() error {
 	client = twilio.NewRestClientWithParams(twilio.ClientParams{
-		Username: conf.Conf.GetString("twilioAccountSID"),
-		Password: conf.Conf.GetString("twilioAuthToken"),
+		Username: conf.Env.GetString("TWILIO_ACCOUNT_SID"),
+		Password: conf.Env.GetString("TWILIO_AUTH_TOKEN"),
 	})
 
 	return nil
@@ -20,8 +20,8 @@ func Setup() error {
 
 func Send(to string, body string) error {
 	params := &openapi.CreateMessageParams{}
-	params.SetFrom(conf.Conf.GetString("twilioPhone"))
-	params.SetTo(to)
+	params.SetFrom(conf.Env.GetString("TWILIO_PHONE"))
+	params.SetTo(to) // example: +34633444555
 	params.SetBody(body)
 
 	// Send sms
