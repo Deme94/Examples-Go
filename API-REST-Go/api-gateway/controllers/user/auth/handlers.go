@@ -100,6 +100,14 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 		return util.ErrorJSON(ctx, errors.New("invalid claimer"))
 	}
 
+	u, err := c.Model.Get(claimerID)
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+	if u.VerifiedMail {
+		return util.ErrorJSON(ctx, errors.New("email already verified"))
+	}
+
 	err = c.Model.VerifyEmail(claimerID)
 	if err != nil {
 		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
