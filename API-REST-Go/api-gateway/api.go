@@ -57,6 +57,8 @@ func Start() error {
 	)
 
 	pub.Post("/auth/login", controllers.User.Auth.Login)
+	pub.Post("/auth/confirm-email/:token", controllers.User.Auth.ConfirmEmail)
+
 	pvt.Get("/auth", controllers.User.Auth.Get)
 	pvt.Get("/auth/photo", controllers.User.Auth.GetPhoto)
 	pvt.Get("/auth/cv", controllers.User.Auth.GetCV)
@@ -65,6 +67,7 @@ func Start() error {
 	pub.Put("/auth/reset-password", controllers.User.Auth.ResetPassword)
 	pvt.Put("/auth/photo", controllers.User.Auth.UpdatePhoto)
 	pvt.Put("/auth/cv", controllers.User.Auth.UpdateCV)
+	pvt.Post("/auth/resend-confirmation-email", controllers.User.Auth.ResendConfirmationEmail)
 	pvt.Delete("/auth", controllers.User.Auth.Delete)
 
 	pvt.Get("/users", middleware.CheckPermission("users", "read"), controllers.User.GetAll)

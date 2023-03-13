@@ -2,12 +2,14 @@ package auth
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
 
+	"API-REST/api-gateway/utilities/templates"
 	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/permission"
 	"API-REST/services/database/postgres/models/user"
@@ -21,7 +23,7 @@ type Controller struct {
 }
 
 // METHODS CONTROLLER ---------------------------------------------------------------
-func (Controller) generateJwtToken(subject string, secret string) ([]byte, error) {
+func (Controller) GenerateJwtToken(subject string, secret string) ([]byte, error) {
 	domain := conf.Env.GetString("DOMAIN")
 	var claims jwt.Claims
 	claims.Subject = fmt.Sprint(subject)
@@ -55,6 +57,18 @@ func (c *Controller) hashPassword(password string) (string, error) {
 	}
 
 	return string(hashedPassword), nil
+}
+
+func (Controller) GenerateConfirmationEmail(token []byte) string {
+	html := strings.ReplaceAll(templates.CONFIRM_EMAIL, "FRONT_DOMAIN", conf.Env.GetString("FRONT_DOMAIN"))
+	html = strings.ReplaceAll(html, "FRONT_PRODUCT_NAME", conf.Env.GetString("FRONT_PRODUCT_NAME"))
+	html = strings.ReplaceAll(html, "FRONT_LOGO_URL", conf.Env.GetString("FRONT_LOGO_URL"))
+	html = strings.ReplaceAll(html, "CONFIRM_EMAIL_ROUTE", conf.Env.GetString("CONFIRM_EMAIL_ROUTE"))
+	html = strings.ReplaceAll(html, "COMPANY_NAME", conf.Env.GetString("COMPANY_NAME"))
+	html = strings.ReplaceAll(html, "COMPANY_OWNER", conf.Env.GetString("COMPANY_OWNER"))
+	html = strings.ReplaceAll(html, "CONFIRM_EMAIL_TOKEN", string(token))
+
+	return html
 }
 
 func (c *Controller) GetRoles(userID int) ([]string, error) {

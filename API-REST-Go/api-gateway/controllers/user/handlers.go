@@ -3,9 +3,11 @@ package user
 import (
 	"API-REST/api-gateway/controllers/user/payloads"
 	util "API-REST/api-gateway/utilities"
+	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/user"
 	psql "API-REST/services/database/postgres/predicates"
 	"API-REST/services/logger"
+	"API-REST/services/mail"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -183,6 +185,15 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 		return util.ErrorJSON(ctx, err)
 	}
 
+	id, _ := c.Model.GetIDByEmail(u.Email)
+	token, _ := c.Auth.GenerateJwtToken(fmt.Sprint(id), conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET"))
+	mail.Send(&mail.Mail{
+		From:    conf.Env.GetString("MAIL_FROM_NOREPLAY"),
+		To:      []string{u.Email},
+		Subject: "Confirm email",
+		Body:    c.Auth.GenerateConfirmationEmail(token),
+	})
+
 	return util.WriteJSON(ctx, http.StatusOK, "user created successfully", "response")
 }
 func (c *Controller) Update(ctx *fiber.Ctx) error {
@@ -335,6 +346,10 @@ func (c *Controller) Ban(ctx *fiber.Ctx) error {
 	err = ctx.BodyParser(&req)
 	if err != nil {
 		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
 	}
 
 	err = c.Model.Ban(id, req.BanExpire)

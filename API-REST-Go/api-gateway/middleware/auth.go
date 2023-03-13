@@ -33,7 +33,7 @@ func CheckToken(ctx *fiber.Ctx) error {
 	}
 
 	token := headerParts[1]
-	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.Env.GetString("JWT_SECRET")))
+	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.Env.GetString("JWT_AUTH_SECRET")))
 	if err != nil {
 		return util.ErrorJSON(ctx, errors.New("unauthorized - invalid token"), http.StatusUnauthorized)
 	}

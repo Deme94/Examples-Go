@@ -185,6 +185,22 @@ func (m *Model) Get(id int) (*User, error) {
 
 	return &u, nil
 }
+func (m *Model) GetIDByEmail(email string) (int, error) {
+	res, err := m.Db.Table("users").Select(
+		"id",
+	).
+		Where("email", "=", email).
+		First()
+	if err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, errors.New("user not found")
+	}
+	id := int(res["id"].(int64))
+
+	return id, nil
+}
 func (m *Model) GetPassword(id int) (string, error) {
 	res, err := m.Db.Table("users").Select(
 		"password",
@@ -527,6 +543,12 @@ func (m *Model) UpdatePhoto(id int, photoName string) error {
 }
 func (m *Model) UpdateCV(id int, cvName string) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"cv_name": cvName})
+	return err
+}
+func (m *Model) VerifyEmail(id int) error {
+	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{
+		"verified_mail": "true",
+	})
 	return err
 }
 func (m *Model) Ban(id int, banExpire time.Time) error {

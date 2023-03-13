@@ -6,6 +6,7 @@ import (
 	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/user"
 	"API-REST/services/logger"
+	"API-REST/services/mail"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -14,12 +15,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
+	"github.com/pascaldekloe/jwt"
 )
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
@@ -65,12 +68,44 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 	}
 
 	// Generate jwt token after successful login
-	token, err := c.generateJwtToken(fmt.Sprint(u.ID), conf.Env.GetString("JWT_SECRET"))
+	token, err := c.GenerateJwtToken(fmt.Sprint(u.ID), conf.Env.GetString("JWT_AUTH_SECRET"))
 	if err != nil {
 		return util.ErrorJSON(ctx, err, http.StatusNotImplemented)
 	}
 
 	return util.WriteJSON(ctx, http.StatusOK, payloads.LoginResponse{ID: u.ID, Token: string(token)}, "response")
+}
+func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
+	token := ctx.Params("token")
+	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET")))
+	if err != nil {
+		return util.ErrorJSON(ctx, errors.New("invalid token"))
+	}
+
+	if !claims.Valid(time.Now()) {
+		return util.ErrorJSON(ctx, errors.New("token expired"))
+	}
+
+	domain := conf.Env.GetString("DOMAIN")
+	if !claims.AcceptAudience(domain) {
+		return util.ErrorJSON(ctx, errors.New("invalid audience"))
+	}
+
+	if claims.Issuer != domain {
+		return util.ErrorJSON(ctx, errors.New("invalid issuer"))
+	}
+
+	claimerID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		return util.ErrorJSON(ctx, errors.New("invalid claimer"))
+	}
+
+	err = c.Model.VerifyEmail(claimerID)
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
@@ -310,6 +345,35 @@ func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
 
 	// Save fileName in DB
 	c.Model.UpdateCV(claimerID, fileName)
+
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
+}
+func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
+
+	u, err := c.Model.Get(claimerID)
+	if err != nil {
+		return util.ErrorJSON(ctx, err)
+	}
+
+	if u.VerifiedMail {
+		return util.ErrorJSON(ctx, errors.New("email already verified"))
+	}
+
+	token, err := c.GenerateJwtToken(fmt.Sprint(claimerID), conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET"))
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	err = mail.Send(&mail.Mail{
+		From:    conf.Env.GetString("MAIL_FROM_NOREPLAY"),
+		To:      []string{u.Email},
+		Subject: "Confirm email",
+		Body:    c.GenerateConfirmationEmail(token),
+	})
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
 
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
