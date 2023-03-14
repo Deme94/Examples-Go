@@ -188,7 +188,7 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	id, _ := c.Model.GetIDByEmail(u.Email)
 	token, _ := c.Auth.GenerateJwtToken(fmt.Sprint(id), conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET"))
 	mail.Send(&mail.Mail{
-		From:    conf.Env.GetString("MAIL_FROM_NOREPLAY"),
+		From:    conf.Env.GetString("MAIL_FROM_NOREPLY"),
 		To:      []string{u.Email},
 		Subject: "Confirm email",
 		Body:    c.Auth.GenerateConfirmationEmail(token),

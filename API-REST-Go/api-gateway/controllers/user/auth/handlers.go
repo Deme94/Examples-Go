@@ -374,7 +374,7 @@ func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
 	}
 
 	err = mail.Send(&mail.Mail{
-		From:    conf.Env.GetString("MAIL_FROM_NOREPLAY"),
+		From:    conf.Env.GetString("MAIL_FROM_NOREPLY"),
 		To:      []string{u.Email},
 		Subject: "Confirm email",
 		Body:    c.GenerateConfirmationEmail(token),
