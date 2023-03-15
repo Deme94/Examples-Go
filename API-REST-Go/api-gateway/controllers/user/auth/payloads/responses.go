@@ -16,7 +16,7 @@ type GetResponse struct {
 	Phone              string     `json:"phone"`
 	Address            string     `json:"address"`
 	LastPasswordChange *time.Time `json:"last_password_change"`
-	VerifiedMail       bool       `json:"verified_mail"`
+	VerifiedEmail      bool       `json:"verified_email"`
 	VerifiedPhone      bool       `json:"verified_phone"`
 }
 

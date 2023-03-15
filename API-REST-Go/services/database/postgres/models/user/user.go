@@ -23,7 +23,7 @@ type User struct {
 
 	LastLogin          *time.Time `json:"last_login,omitempty"`
 	LastPasswordChange *time.Time `json:"last_password_change,omitempty"`
-	VerifiedMail       bool       `json:"verified_mail,omitempty"`
+	VerifiedEmail      bool       `json:"verified_email,omitempty"`
 	VerifiedPhone      bool       `json:"verified_phone,omitempty"`
 	BanDate            *time.Time `json:"ban_date,omitempty"`
 	BanExpire          *time.Time `json:"ban_expire,omitempty"`

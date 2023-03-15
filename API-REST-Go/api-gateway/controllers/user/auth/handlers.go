@@ -104,7 +104,7 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 	if err != nil {
 		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}
-	if u.VerifiedMail {
+	if u.VerifiedEmail {
 		return util.ErrorJSON(ctx, errors.New("email already verified"))
 	}
 
@@ -135,7 +135,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 		Phone:              u.Phone,
 		Address:            u.Address,
 		LastPasswordChange: u.LastPasswordChange,
-		VerifiedMail:       u.VerifiedMail,
+		VerifiedEmail:      u.VerifiedEmail,
 		VerifiedPhone:      u.VerifiedPhone,
 	}
 
@@ -364,7 +364,7 @@ func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
 		return util.ErrorJSON(ctx, err)
 	}
 
-	if u.VerifiedMail {
+	if u.VerifiedEmail {
 		return util.ErrorJSON(ctx, errors.New("email already verified"))
 	}
 

@@ -23,7 +23,7 @@ CREATE TABLE users (
     
     last_login TIMESTAMP,
     last_password_change TIMESTAMP NOT NULL DEFAULT NOW(),
-    verified_mail BOOLEAN NOT NULL DEFAULT FALSE,
+    verified_email BOOLEAN NOT NULL DEFAULT FALSE,
     verified_phone BOOLEAN NOT NULL DEFAULT FALSE,
     ban_date TIMESTAMP,
     ban_expire TIMESTAMP,

@@ -74,7 +74,7 @@ func (m *Model) Get(id int) (*User, error) {
 
 		"last_login",
 		"last_password_change",
-		"verified_mail",
+		"verified_email",
 		"verified_phone",
 		"ban_date",
 		"ban_expire",
@@ -176,7 +176,7 @@ func (m *Model) Get(id int) (*User, error) {
 		Address:            address,
 		LastLogin:          lastLogin,
 		LastPasswordChange: &LastPasswordChange,
-		VerifiedMail:       r["verified_mail"].(bool),
+		VerifiedEmail:      r["verified_email"].(bool),
 		VerifiedPhone:      r["verified_phone"].(bool),
 		BanDate:            banDate,
 		BanExpire:          banExpire,
@@ -547,7 +547,7 @@ func (m *Model) UpdateCV(id int, cvName string) error {
 }
 func (m *Model) VerifyEmail(id int) error {
 	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{
-		"verified_mail": "true",
+		"verified_email": "true",
 	})
 	return err
 }
