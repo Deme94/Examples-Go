@@ -2,11 +2,7 @@ package payloads
 
 import "time"
 
-type GetAllResponse struct {
-	Users []*GetResponse `json:"users,omitempty"`
-}
 type GetResponse struct {
-	ID                 int        `json:"id"`
 	CreatedAt          *time.Time `json:"created_at"`
 	Username           string     `json:"username"`
 	Email              string     `json:"email"`

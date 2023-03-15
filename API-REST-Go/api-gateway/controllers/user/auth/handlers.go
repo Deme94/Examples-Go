@@ -125,7 +125,6 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	}
 
 	userResponse := payloads.GetResponse{
-		ID:                 u.ID,
 		CreatedAt:          u.CreatedAt,
 		Username:           u.Username,
 		Email:              u.Email,
