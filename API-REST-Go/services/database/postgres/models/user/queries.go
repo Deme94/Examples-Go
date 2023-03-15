@@ -376,6 +376,36 @@ func (m *Model) HasPermission(id int, p *permission.Permission) (bool, error) {
 
 	return true, nil
 }
+func (m *Model) HasVerifiedEmail(id int) (bool, error) {
+	res, err := m.Db.Table("users").Select(
+		"verified_email",
+	).
+		Where("users.id", "=", id).
+		Get()
+	if err != nil {
+		return false, err
+	}
+	if len(res) == 0 {
+		return false, nil
+	}
+	verifiedEmail := res[0]["verified_email"].(bool)
+	return verifiedEmail, nil
+}
+func (m *Model) HasVerifiedPhone(id int) (bool, error) {
+	res, err := m.Db.Table("users").Select(
+		"verified_phone",
+	).
+		Where("users.id", "=", id).
+		Get()
+	if err != nil {
+		return false, err
+	}
+	if len(res) == 0 {
+		return false, nil
+	}
+	verifiedPhone := res[0]["verified_phone"].(bool)
+	return verifiedPhone, nil
+}
 func (m *Model) GetPhoto(id int) (string, error) {
 	res, err := m.Db.Table("users").Select("photo_name").Where("id", "=", id).Get()
 	if err != nil {

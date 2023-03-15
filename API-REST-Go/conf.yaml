@@ -1,5 +1,6 @@
 # API
 apiBasePath: "/api/v1"
+verifyEmail: true
 # Logger
 logDir: "./logs"
 logFileName: "log"

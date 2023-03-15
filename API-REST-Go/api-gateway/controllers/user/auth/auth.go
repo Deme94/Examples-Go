@@ -85,4 +85,8 @@ func (c *Controller) HasPermission(userID int, resource string, operation string
 	return c.Model.HasPermission(userID, &permission.Permission{Resource: resource, Operation: operation})
 }
 
+func (c *Controller) HasVerifiedEmail(userID int) (bool, error) {
+	return c.Model.HasVerifiedEmail(userID)
+}
+
 // ...
