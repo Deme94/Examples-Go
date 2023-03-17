@@ -20,16 +20,16 @@ func CheckToken(ctx *fiber.Ctx) error {
 
 	if authHeader == "" {
 		// could set an anonoymous user
-		return util.ErrorJSON(ctx, errors.New("invalid authorization header"))
+		return util.ErrorJSON(ctx, errors.New("invalid authorization header"), http.StatusUnauthorized)
 	}
 
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 {
-		return util.ErrorJSON(ctx, errors.New("invalid authorization header"))
+		return util.ErrorJSON(ctx, errors.New("invalid authorization header"), http.StatusUnauthorized)
 	}
 
 	if headerParts[0] != "Bearer" {
-		return util.ErrorJSON(ctx, errors.New("unauthorized - no bearer"))
+		return util.ErrorJSON(ctx, errors.New("unauthorized - no bearer"), http.StatusUnauthorized)
 	}
 
 	token := headerParts[1]
