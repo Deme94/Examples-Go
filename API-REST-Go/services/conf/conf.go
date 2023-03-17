@@ -7,18 +7,27 @@ import (
 var Env *viper.Viper
 var Conf *viper.Viper
 
-func Setup() error {
+func Setup(envFileName string, configFileName string) error {
+	envName := ".env"
+	configName := "conf"
+	if envFileName != "" {
+		envName = envFileName
+	}
+	if configFileName != "" {
+		configName = configFileName
+	}
+
 	// Load environment configuration
 	Env = viper.New()
-	Env.SetConfigFile(".env") // name of config file with extension
-	Env.AddConfigPath(".")    // optionally look for config in the working directory
-	err := Env.ReadInConfig() // Find and read the config file
+	Env.SetConfigFile(envName) // name of config file with extension
+	Env.AddConfigPath(".")     // optionally look for config in the working directory
+	err := Env.ReadInConfig()  // Find and read the config file
 	if err != nil {
 		return err
 	}
 	// Load yaml configuration
 	Conf = viper.New()
-	Conf.SetConfigName("conf")
+	Conf.SetConfigName(configName)
 	Conf.SetConfigType("yaml")
 	Conf.AddConfigPath(".")
 	err = Conf.ReadInConfig()

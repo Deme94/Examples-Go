@@ -8,15 +8,9 @@ import (
 var Local *local.Storage
 var GCS *gcs.Storage
 
-func Setup() error {
-	err := local.Setup(Local)
-	if err != nil {
-		return err
-	}
-	err = gcs.Setup(GCS)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func SetupLocal() error {
+	return local.Setup(Local)
+}
+func SetupGCS() error {
+	return gcs.Setup(GCS)
 }

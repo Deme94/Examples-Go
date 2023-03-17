@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 
 		// Conf
 		log.Println("Loading configuration service...")
-		err := conf.Setup()
+		err := conf.Setup("", "")
 		if err != nil {
 			log.Fatal("\033[31m"+"CONFIGURATION SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
@@ -60,7 +60,11 @@ var rootCmd = &cobra.Command{
 
 		// Storage
 		log.Println("Loading storage service...")
-		err = storage.Setup()
+		err = storage.SetupLocal()
+		if err != nil {
+			log.Fatal("\033[31m"+"STORAGE SERVICE FAILED"+"\033[0m"+" -> ", err)
+		}
+		err = storage.SetupGCS()
 		if err != nil {
 			log.Fatal("\033[31m"+"STORAGE SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
@@ -68,7 +72,11 @@ var rootCmd = &cobra.Command{
 
 		// DB
 		log.Println("Loading database service...")
-		err = database.Setup()
+		err = database.SetupPostgres()
+		if err != nil {
+			log.Fatal("\033[31m"+"DATABASE SERVICE FAILED"+"\033[0m"+" -> ", err)
+		}
+		err = database.SetupMongo()
 		if err != nil {
 			log.Fatal("\033[31m"+"DATABASE SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}

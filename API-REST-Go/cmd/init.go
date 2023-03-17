@@ -23,7 +23,7 @@ var initCmd = &cobra.Command{
 
 		// Conf
 		log.Println("Loading configuration service...")
-		err := conf.Setup()
+		err := conf.Setup("", "")
 		if err != nil {
 			log.Fatal("\033[31m"+"CONFIGURATION SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}

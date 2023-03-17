@@ -6,20 +6,35 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/arthurkushman/buildsqlx"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
 func Setup() error {
 	// Read conf
-	postgresURI := conf.Env.GetString("POSTGRES_URI")
+	username := conf.Env.GetString("POSTGRES_DB_USERNAME")
+	password := conf.Env.GetString("POSTGRES_DB_PASSWORD")
+	host := conf.Env.GetString("POSTGRES_DB_HOST")
+	port := conf.Env.GetString("POSTGRES_DB_PORT")
 	postgresDB := conf.Env.GetString("POSTGRES_DB")
+
+	postgresURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+		username,
+		password,
+		host,
+		port,
+		postgresDB,
+	)
 	// Connect DB
-	postgresClient := buildsqlx.NewConnection("postgres", postgresURI+postgresDB)
+	postgresClient := buildsqlx.NewConnection("postgres", postgresURI)
 	// Build DB
 	db := buildsqlx.NewDb(postgresClient)
 	// Check DB connection
@@ -33,17 +48,53 @@ func Setup() error {
 	return nil
 }
 
-// Create DB and tables
-func Init() error {
-
-	// Create DB and tables from postgres.sql file
-	err := createDBTables()
+func SetupDockertest() error {
+	// Create docker db
+	db, err := createDBDockertest()
+	if err != nil {
+		return err
+	}
+	// Create tables
+	err = createTables(db)
+	if err != nil {
+		return err
+	}
+	// Insert conf values
+	err = insertConfData(db)
 	if err != nil {
 		return err
 	}
 
+	// Build sqlx client
+	postgresClient := buildsqlx.NewConnectionFromDb(db)
+	dbSqlx := buildsqlx.NewDb(postgresClient)
+	err = dbSqlx.Sql().Ping()
+	if err != nil {
+		return err
+	}
+
+	// Build Models
+	models.Build(dbSqlx)
+
+	return nil
+}
+
+// Create DB and tables
+func Init() error {
+
+	// Create db if not exists
+	db, err := createDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	// Create tables from postgres.sql file
+	err = createTables(db)
+	if err != nil {
+		return err
+	}
 	// Insert default data into tables from conf.yml
-	err = insertConfData()
+	err = insertConfData(db)
 	if err != nil {
 		return err
 	}
@@ -51,12 +102,103 @@ func Init() error {
 	return nil
 }
 
-func createDBTables() error {
+func createDB() (*sql.DB, error) {
 	// Read conf
-	postgresURI := conf.Env.GetString("POSTGRES_URI")
+	username := conf.Env.GetString("POSTGRES_DB_USERNAME")
+	password := conf.Env.GetString("POSTGRES_DB_PASSWORD")
+	host := conf.Env.GetString("POSTGRES_DB_HOST")
+	port := conf.Env.GetString("POSTGRES_DB_PORT")
 	postgresDefaultDB := conf.Env.GetString("POSTGRES_DEFAULT_DB")
 	postgresDB := conf.Env.GetString("POSTGRES_DB")
 
+	// Open default DB
+	db, err := sql.Open("postgres", "postgres://"+username+":"+password+"@"+host+":"+port+"/"+postgresDefaultDB)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	// Create new DB
+	_, err = db.Exec(`CREATE DATABASE ` + postgresDB)
+	if err != nil {
+		if !strings.Contains(fmt.Sprint(err), "already exists") {
+			return nil, err
+		}
+	}
+
+	// Open new DB
+	db, err = sql.Open("postgres", "postgres://"+username+":"+password+"@"+host+":"+port+"/"+postgresDB)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+func createDBDockertest() (*sql.DB, error) {
+	// Read conf
+	username := conf.Env.GetString("POSTGRES_DB_USERNAME")
+	password := conf.Env.GetString("POSTGRES_DB_PASSWORD")
+	port := conf.Env.GetString("POSTGRES_DB_PORT")
+	postgresDB := conf.Env.GetString("POSTGRES_DB")
+
+	// DOCKERTEST
+	var db *sql.DB
+	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		return nil, fmt.Errorf("could not construct pool: %s", err)
+	}
+
+	// uses pool to try to connect to Docker
+	err = pool.Client.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to Docker: %s", err)
+	}
+
+	// pulls an image, creates a container based on it and runs it
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "11",
+		Env: []string{
+			"POSTGRES_PASSWORD=" + password,
+			"POSTGRES_USER=" + username,
+			"POSTGRES_DB=" + postgresDB,
+			"listen_addresses = '*'",
+		},
+	}, func(config *docker.HostConfig) {
+		// set AutoRemove to true so that stopped container goes away by itself
+		config.AutoRemove = true
+		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not start resource: %s", err)
+	}
+	resource.Expire(30)
+	pool.MaxWait = 30 * time.Second
+
+	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+	if err := pool.Retry(func() error {
+		uri := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+			username, password, resource.GetHostPort(port+"/tcp"), postgresDB)
+		db, err = sql.Open("postgres", uri)
+		if err != nil {
+			return err
+		}
+		return db.Ping()
+	}); err != nil {
+		return nil, fmt.Errorf("could not connect to database: %s", err)
+	}
+
+	// Destroy db after 30 seconds
+	go func() {
+		time.Sleep(time.Second * 30)
+		if err := pool.Purge(resource); err != nil {
+			log.Fatalf("could not purge resource: %s", err)
+		}
+	}()
+	return db, nil
+}
+func createTables(db *sql.DB) error {
 	// Read sql file
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
@@ -71,28 +213,6 @@ func createDBTables() error {
 	}
 	sqlQuery := string(bytes)
 
-	// Open default DB
-	db, err := sql.Open("postgres", postgresURI+postgresDefaultDB)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	// Create new DB
-	_, err = db.Exec(`CREATE DATABASE ` + postgresDB)
-	if err != nil {
-		if !strings.Contains(fmt.Sprint(err), "already exists") {
-			return err
-		}
-	}
-
-	// Open new DB
-	db, err = sql.Open("postgres", postgresURI+postgresDB)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
 	// Create Tables
 	_, err = db.Exec(sqlQuery)
 	if err != nil {
@@ -101,21 +221,10 @@ func createDBTables() error {
 
 	return nil
 }
-
-func insertConfData() error {
+func insertConfData(db *sql.DB) error {
 	// Read conf
-	postgresURI := conf.Env.GetString("POSTGRES_URI")
-	postgresDB := conf.Env.GetString("POSTGRES_DB")
-
 	permissions := conf.Conf.GetStringMapStringSlice("permissions")
 	roles := conf.Conf.GetStringMap("roles")
-
-	// Open DB
-	db, err := sql.Open("postgres", postgresURI+postgresDB)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
 
 	// Insert permissions
 	insertPermissions := "INSERT INTO permissions (resource, operation) VALUES "
@@ -126,7 +235,7 @@ func insertConfData() error {
 	}
 	insertPermissions = strings.TrimSuffix(insertPermissions, ",") + ";"
 
-	_, err = db.Exec(insertPermissions)
+	_, err := db.Exec(insertPermissions)
 	if err != nil {
 		return err
 	}

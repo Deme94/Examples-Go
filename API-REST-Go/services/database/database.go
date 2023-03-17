@@ -7,17 +7,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func Setup() error {
-	err := postgres.Setup()
-	if err != nil {
-		return err
-	}
-	err = mongo.Setup()
-	if err != nil {
-		return err
-	}
+func SetupPostgres() error {
+	return postgres.Setup()
+}
+func SetupMongo() error {
+	return mongo.Setup()
+}
 
-	return nil
+func SetupPostgresDockertest() error {
+	return postgres.SetupDockertest()
 }
 
 // Create DB and tables

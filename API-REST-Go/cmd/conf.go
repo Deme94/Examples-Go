@@ -22,7 +22,7 @@ var confCmd = &cobra.Command{
 		`logFileExt: "txt"` + "\n",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := conf.Setup()
+		err := conf.Setup("", "")
 		if err != nil {
 			return errors.New("\033[31m" + "CONFIGURATION SERVICE DIDN'T WORK" + "\033[0m")
 		}
