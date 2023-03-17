@@ -18,6 +18,11 @@ func Setup() error {
 	filename := conf.Conf.GetString("logFileName")
 	ext := conf.Conf.GetString("logFileExt")
 
+	// Default logger if not specified is stdout
+	if dir == "" || filename == "" {
+		Logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.LstdFlags|log.Lshortfile)
+		return nil
+	}
 	// Create directory if not exist
 	err := os.Mkdir(dir, os.ModePerm)
 	if err != nil && !strings.Contains(fmt.Sprint(err), "file exists") {

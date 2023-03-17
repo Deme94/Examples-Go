@@ -2,8 +2,8 @@
 apiBasePath: "/api/v1"
 verifyEmail: true
 # Logger
-logDir: "./logs"
-logFileName: "testlog"
+logDir: ""
+logFileName: ""
 logFileExt: "txt"
 # DB
 permissions:
