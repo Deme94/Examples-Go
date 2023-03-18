@@ -115,6 +115,69 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
+func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
+	claimerID := ctx.Locals("Claimer-ID").(int)
+
+	u, err := c.Model.Get(claimerID)
+	if err != nil {
+		return util.ErrorJSON(ctx, err)
+	}
+
+	if u.VerifiedEmail {
+		return util.ErrorJSON(ctx, errors.New("email already verified"))
+	}
+
+	token, err := c.GenerateJwtToken(fmt.Sprint(claimerID), conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET"))
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	err = mail.Send(&mail.Mail{
+		From:    conf.Env.GetString("MAIL_FROM_NOREPLY"),
+		To:      []string{u.Email},
+		Subject: "Confirm email",
+		Body:    c.GenerateConfirmationEmail(token),
+	})
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
+}
+func (c *Controller) ResetPassword(ctx *fiber.Ctx) error {
+	var req payloads.ResetPasswordRequest
+
+	err := ctx.BodyParser(&req)
+	if err != nil {
+		return util.ErrorJSON(ctx, err)
+	}
+	err = c.Validate.Struct(req)
+	if err != nil {
+		return err
+	}
+
+	u, err := c.Model.GetByEmailWithPassword(req.Email)
+	if err != nil {
+		return util.ErrorJSON(ctx, err)
+	}
+
+	if u.DeletedAt != nil {
+		return util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
+	}
+
+	password := c.generateRandomPassword()
+
+	err = c.Model.UpdatePassword(u.ID, password)
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	// Send password to email
+	fmt.Println(password)
+	// ...
+
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
+}
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	claimerID := ctx.Locals("Claimer-ID").(int)
@@ -226,61 +289,6 @@ func (c *Controller) ChangePassword(ctx *fiber.Ctx) error {
 
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) ResetPassword(ctx *fiber.Ctx) error {
-	var req payloads.ResetPasswordRequest
-
-	err := ctx.BodyParser(&req)
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-	err = c.Validate.Struct(req)
-	if err != nil {
-		return err
-	}
-
-	u, err := c.Model.GetByEmailWithPassword(req.Email)
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-
-	if u.DeletedAt != nil {
-		return util.ErrorJSON(ctx, errors.New("user deleted"), http.StatusUnauthorized)
-	}
-
-	password := c.generateRandomPassword()
-
-	err = c.Model.UpdatePassword(u.ID, password)
-	if err != nil {
-		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
-	}
-
-	// Send password to email
-	fmt.Println(password)
-	// ...
-
-	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
-}
-func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
-
-	var req payloads.UpdateRolesRequest
-
-	err := ctx.BodyParser(&req)
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-	err = c.Validate.Struct(req)
-	if err != nil {
-		return err
-	}
-
-	err = c.Model.UpdateRoles(claimerID, req.RoleIDs...)
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-
-	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
-}
 func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
 	claimerID := ctx.Locals("Claimer-ID").(int)
 
@@ -352,35 +360,6 @@ func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
 
 	// Save fileName in DB
 	c.Model.UpdateCV(claimerID, fileName)
-
-	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
-}
-func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
-
-	u, err := c.Model.Get(claimerID)
-	if err != nil {
-		return util.ErrorJSON(ctx, err)
-	}
-
-	if u.VerifiedEmail {
-		return util.ErrorJSON(ctx, errors.New("email already verified"))
-	}
-
-	token, err := c.GenerateJwtToken(fmt.Sprint(claimerID), conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET"))
-	if err != nil {
-		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
-	}
-
-	err = mail.Send(&mail.Mail{
-		From:    conf.Env.GetString("MAIL_FROM_NOREPLY"),
-		To:      []string{u.Email},
-		Subject: "Confirm email",
-		Body:    c.GenerateConfirmationEmail(token),
-	})
-	if err != nil {
-		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
-	}
 
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
