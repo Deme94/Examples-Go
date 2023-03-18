@@ -17,7 +17,6 @@ type GetResponse struct {
 }
 
 type LoginResponse struct {
-	ID        int        `json:"user_id,omitempty"`
 	Token     string     `json:"token,omitempty"`
 	BanExpire *time.Time `json:"ban_expire,omitempty"`
 }

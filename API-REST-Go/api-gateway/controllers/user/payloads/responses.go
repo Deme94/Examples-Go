@@ -10,8 +10,3 @@ type GetResponse struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 }
-
-type LoginResponse struct {
-	ID    int    `json:"user_id"`
-	Token string `json:"token"`
-}
