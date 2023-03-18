@@ -73,7 +73,7 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 		return util.ErrorJSON(ctx, err, http.StatusNotImplemented)
 	}
 
-	return util.WriteJSON(ctx, http.StatusOK, payloads.LoginResponse{ID: u.ID, Token: string(token)}, "response")
+	return util.WriteJSON(ctx, http.StatusOK, payloads.LoginResponse{Token: string(token)})
 }
 func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 	token := ctx.Params("token")

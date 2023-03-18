@@ -17,6 +17,9 @@ func Start() error {
 	// Create api router
 	app := NewRouter()
 	// Run server
+	host := conf.Env.GetString("HOST")
+	port := conf.Env.GetString("PORT")
+	logger.Logger.Printf("Starting server on http://%s:%s\n", host, port)
 	return app.Listen(conf.Env.GetString("HOST") + ":" + conf.Env.GetString("PORT"))
 }
 
@@ -117,11 +120,6 @@ func NewRouter() *fiber.App {
 	pvtVer.Put("/attributes/:id", middleware.CheckPermission("attributes", "update"), controllers.Attribute.Update)
 	pvtVer.Delete("/attributes/:id", middleware.CheckPermission("attributes", "delete"), controllers.Attribute.Delete)
 	// ...
-
-	// Log start
-	host := conf.Env.GetString("HOST")
-	port := conf.Env.GetString("PORT")
-	logger.Logger.Printf("Starting server on http://%s:%s\n", host, port)
 
 	return app
 }

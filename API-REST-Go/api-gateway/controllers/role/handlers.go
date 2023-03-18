@@ -54,7 +54,7 @@ func (c *Controller) GetAll(ctx *fiber.Ctx) error {
 	}
 
 	allResponse := payloads.GetAllResponse{Roles: all}
-	return util.WriteJSON(ctx, http.StatusOK, allResponse, "response")
+	return util.WriteJSON(ctx, http.StatusOK, allResponse)
 }
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
