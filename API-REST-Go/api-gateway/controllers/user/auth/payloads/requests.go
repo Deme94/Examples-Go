@@ -9,11 +9,11 @@ type LoginRequest struct {
 }
 
 type UpdateRequest struct {
-	Nick      string `json:"nick"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Phone     string `json:"phone"`
-	Address   string `json:"address"`
+	Nick      string `json:"nick,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Phone     string `json:"phone,omitempty"`
+	Address   string `json:"address,omitempty"`
 }
 
 type ChangePasswordRequest struct {
