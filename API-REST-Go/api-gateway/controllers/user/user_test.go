@@ -1,6 +1,8 @@
-package user
+package user_test
 
 import (
+	"API-REST/api-gateway"
+	"API-REST/api-gateway/utilities/test"
 	"API-REST/services/conf"
 	"API-REST/services/database"
 	"API-REST/services/logger"
@@ -8,12 +10,21 @@ import (
 	"API-REST/services/sms"
 	"API-REST/services/storage"
 	"log"
+	"net/http"
 	"os"
 	"testing"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
+var app *fiber.App
 
+var basePath string
+var headers map[string]string
+var cookies []*http.Cookie
+
+func TestMain(m *testing.M) {
 	// Setup
 	log.SetFlags(log.LstdFlags | log.Lshortfile) // Set default log flags (print file and line)
 
@@ -73,15 +84,28 @@ func TestMain(m *testing.M) {
 	// }
 	log.Println("\033[32m" + "DATABASE SERVICE IS RUNNING" + "\033[0m")
 
+	// Build Test App (api)
+	app = api.NewRouter()
+
+	basePath = "http://" + conf.Env.GetString("HOST") + ":" + conf.Env.GetString("PORT") + conf.Conf.GetString("apiBasePath")
+
 	// RUN TESTS
 	code := m.Run()
 	os.Exit(code)
 }
 
 func TestAll(t *testing.T) {
-	testHelloWorld(t)
+	testGetAll(t)
 }
 
-func testHelloWorld(t *testing.T) {
-	t.Fatal("Hello world!")
+func testGetAll(t *testing.T) {
+	msTimeout := 2000
+	res, err := app.Test(test.NewRequest(&test.RequestParams{
+		Method: "GET",
+		Path:   basePath + "/private/verified/users",
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }

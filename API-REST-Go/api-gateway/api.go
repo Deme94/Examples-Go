@@ -14,6 +14,13 @@ import (
 )
 
 func Start() error {
+	// Create api router
+	app := NewRouter()
+	// Run server
+	return app.Listen(conf.Env.GetString("HOST") + ":" + conf.Env.GetString("PORT"))
+}
+
+func NewRouter() *fiber.App {
 	// Build controllers
 	controllers.Build()
 
@@ -116,6 +123,5 @@ func Start() error {
 	port := conf.Env.GetString("PORT")
 	logger.Logger.Printf("Starting server on http://%s:%s\n", host, port)
 
-	// Run server
-	return app.Listen(conf.Env.GetString("HOST") + ":" + port)
+	return app
 }
