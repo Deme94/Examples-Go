@@ -2,23 +2,34 @@ package test
 
 import (
 	"bytes"
-	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+
+	"github.com/goccy/go-json"
 )
 
 type RequestParams struct {
-	Method  string
-	Path    string
-	Body    any
-	Headers map[string]string
-	Cookies []*http.Cookie
+	Method      string
+	Path        string
+	ContentType string
+	Body        any
+	Headers     map[string]string
+	Cookies     []*http.Cookie
 }
 
 func NewRequest(r *RequestParams) *http.Request {
+	if r.ContentType == "" {
+		r.ContentType = "application/json"
+	}
+
 	var body bytes.Buffer
-	_ = json.NewEncoder(&body).Encode(r.Body)
+	json.NewEncoder(&body).Encode(r.Body)
+
 	req := httptest.NewRequest(r.Method, r.Path, &body)
+	req.Header.Add("Content-Type", r.ContentType)
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)
 	}
@@ -26,4 +37,16 @@ func NewRequest(r *RequestParams) *http.Request {
 		req.AddCookie(cookie)
 	}
 	return req
+}
+
+func BodyToString(body io.ReadCloser) string {
+	// read response body
+	bytes, error := ioutil.ReadAll(body)
+	if error != nil {
+		fmt.Println(error)
+	}
+	// close response body
+	body.Close()
+
+	return string(bytes)
 }
