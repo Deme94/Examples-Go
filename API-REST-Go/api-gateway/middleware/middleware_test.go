@@ -2,14 +2,21 @@ package middleware_test
 
 import (
 	"API-REST/api-gateway"
+	authPayloads "API-REST/api-gateway/controllers/user/auth/payloads"
+	userPayloads "API-REST/api-gateway/controllers/user/payloads"
 	"API-REST/api-gateway/utilities/test"
 	"API-REST/services/conf"
 	"API-REST/services/database"
 	"API-REST/services/logger"
+	"API-REST/services/mail"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"testing"
+
+	"github.com/goccy/go-json"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +25,19 @@ import (
 var app *fiber.App
 
 var basePath string
+var headers map[string]string
+var cookies []*http.Cookie
+
+var testUserAdmin = userPayloads.InsertRequest{
+	Username: "admin",
+	Email:    "admin@gmail.com",
+	Password: "test1234",
+}
+var testUser = userPayloads.InsertRequest{
+	Username: "test",
+	Email:    "test@gmail.com",
+	Password: "test1234",
+}
 
 func TestMain(m *testing.M) {
 	// Setup
@@ -38,6 +58,14 @@ func TestMain(m *testing.M) {
 		log.Fatal("\033[31m"+"LOGGING SERVICE FAILED"+"\033[0m"+" -> ", err)
 	}
 	log.Println("\033[32m" + "LOGGING SERVICE IS RUNNING" + "\033[0m")
+
+	// Mail
+	log.Println("Loading mail service...")
+	err = mail.Setup()
+	if err != nil {
+		log.Fatal("\033[31m"+"MAIL SERVICE FAILED"+"\033[0m"+" -> ", err)
+	}
+	log.Println("\033[32m" + "MAIL SERVICE IS RUNNING" + "\033[0m")
 
 	// DB
 	log.Println("Loading database service...")
@@ -63,6 +91,7 @@ func TestMain(m *testing.M) {
 
 func TestAll(t *testing.T) {
 	testCORS(t)
+	testAuth(t)
 }
 
 func testCORS(t *testing.T) {
@@ -89,4 +118,100 @@ func testCORS(t *testing.T) {
 	}
 	assert.NotContains(t, fmt.Sprint(res.Header), "Origin:[test.com]")
 	assert.Contains(t, fmt.Sprint(res.Header), "Origin:[]")
+}
+
+func testAuth(t *testing.T) {
+	msTimeout := 2000
+	res, err := app.Test(test.NewRequest(&test.RequestParams{
+		Method: "GET",
+		Path:   basePath + "/private/",
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	signUpTestUsers()
+	loginTestUserAdmin()
+
+	res, err = app.Test(test.NewRequest(&test.RequestParams{
+		Method:  "GET",
+		Path:    basePath + "/private/",
+		Headers: headers,
+		Cookies: cookies,
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+// utils
+func signUpTestUsers() {
+	msTimeout := 15000
+	req := test.NewRequest(&test.RequestParams{
+		Method: "POST",
+		Path:   basePath + "/public/users",
+		Body:   testUserAdmin,
+	})
+
+	// signup admin
+	_, err := app.Test(req, msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//signup user
+	_, err = app.Test(test.NewRequest(&test.RequestParams{
+		Method: "POST",
+		Path:   basePath + "/public/users",
+		Body:   testUser,
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func loginTestUser() {
+	msTimeout := 2000
+	res, err := app.Test(test.NewRequest(&test.RequestParams{
+		Method: "POST",
+		Path:   basePath + "/public/auth/login",
+		Body:   testUser,
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Save cookies
+	cookies = res.Cookies()
+	// Save Jwt Token Header
+	loginResponse := authPayloads.LoginResponse{}
+	bodyBytes, _ := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	json.Unmarshal(bodyBytes, &loginResponse)
+
+	headers = make(map[string]string)
+	headers["Authorization"] = "Bearer " + loginResponse.Token
+}
+
+func loginTestUserAdmin() {
+	msTimeout := 2000
+	res, err := app.Test(test.NewRequest(&test.RequestParams{
+		Method: "POST",
+		Path:   basePath + "/public/auth/login",
+		Body:   testUserAdmin,
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Save cookies
+	cookies = res.Cookies()
+	// Save Jwt Token Header
+	loginResponse := authPayloads.LoginResponse{}
+	bodyBytes, _ := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	json.Unmarshal(bodyBytes, &loginResponse)
+
+	headers = make(map[string]string)
+	headers["Authorization"] = "Bearer " + loginResponse.Token
 }
