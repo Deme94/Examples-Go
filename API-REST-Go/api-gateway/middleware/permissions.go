@@ -8,13 +8,14 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 func CheckPermission(resource string, operation string) func(ctx *fiber.Ctx) error {
 
 	return func(ctx *fiber.Ctx) error {
-		claimerID := ctx.Locals("Claimer-ID").(int)
-		claimerRoles, err := controllers.User.Auth.GetRoles(claimerID)
+		claimerID := ctx.Locals("Claimer-ID").(string)
+		claimerRoles, err := controllers.User.Auth.GetRoles(uuid.MustParse(claimerID))
 		if err != nil {
 			return util.ErrorJSON(ctx, err, http.StatusForbidden)
 		}
@@ -25,7 +26,7 @@ func CheckPermission(resource string, operation string) func(ctx *fiber.Ctx) err
 			}
 		}
 
-		hasPerm, err := controllers.User.Auth.HasPermission(claimerID, resource, operation)
+		hasPerm, err := controllers.User.Auth.HasPermission(uuid.MustParse(claimerID), resource, operation)
 		if err != nil {
 			return util.ErrorJSON(ctx, err, http.StatusForbidden)
 		}

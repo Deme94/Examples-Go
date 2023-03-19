@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func (m *Model) GetAll(p *predicates.Predicates) ([]*User, error) {
@@ -45,7 +47,7 @@ func (m *Model) GetAll(p *predicates.Predicates) ([]*User, error) {
 		}
 
 		u := User{
-			ID:        int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+			ID:        uuid.MustParse(r["id"].(string)), // la DB devuelve interface{} y se hace cast a int
 			Username:  r["username"].(string),
 			Email:     r["email"].(string),
 			FirstName: firstName,
@@ -57,7 +59,7 @@ func (m *Model) GetAll(p *predicates.Predicates) ([]*User, error) {
 
 	return usrs, nil
 }
-func (m *Model) Get(id int) (*User, error) {
+func (m *Model) Get(id uuid.UUID) (*User, error) {
 	res, err := m.Db.Table("users").Select(
 		"created_at",
 		"updated_at",
@@ -82,7 +84,7 @@ func (m *Model) Get(id int) (*User, error) {
 		"roles.id as role_id",
 		"roles.name as role_name",
 	).
-		Where("users.id", "=", id).
+		Where("users.id", "=", id.String()).
 		LeftJoin("users_roles", "users.id", "=", "users_roles.user_id").
 		LeftJoin("roles", "users_roles.role_id", "=", "roles.id").
 		Get()
@@ -185,27 +187,27 @@ func (m *Model) Get(id int) (*User, error) {
 
 	return &u, nil
 }
-func (m *Model) GetIDByEmail(email string) (int, error) {
+func (m *Model) GetIDByEmail(email string) (uuid.UUID, error) {
 	res, err := m.Db.Table("users").Select(
 		"id",
 	).
 		Where("email", "=", email).
 		First()
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
 	if len(res) == 0 {
-		return 0, errors.New("user not found")
+		return uuid.Nil, errors.New("user not found")
 	}
-	id := int(res["id"].(int64))
+	id := uuid.MustParse(res["id"].(string))
 
 	return id, nil
 }
-func (m *Model) GetPassword(id int) (string, error) {
+func (m *Model) GetPassword(id uuid.UUID) (string, error) {
 	res, err := m.Db.Table("users").Select(
 		"password",
 	).
-		Where("id", "=", id).
+		Where("id", "=", id.String()).
 		First()
 	if err != nil {
 		return "", err
@@ -271,7 +273,7 @@ func (m *Model) GetByEmailWithPassword(email string) (*User, error) {
 	lastPasswordChange := r["last_password_change"].(time.Time)
 
 	u := User{
-		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+		ID:                 uuid.MustParse(r["id"].(string)), // la DB devuelve interface{} y se hace cast a int
 		CreatedAt:          &createdAt,
 		DeletedAt:          deletedAt,
 		Username:           r["username"].(string),
@@ -339,7 +341,7 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 	lastPasswordChange := r["last_password_change"].(time.Time)
 
 	u := User{
-		ID:                 int(r["id"].(int64)), // la DB devuelve interface{} y se hace cast a int
+		ID:                 uuid.MustParse(r["id"].(string)), // la DB devuelve interface{} y se hace cast a int
 		CreatedAt:          &createdAt,
 		DeletedAt:          deletedAt,
 		Username:           username,
@@ -353,13 +355,13 @@ func (m *Model) GetByUsernameWithPassword(username string) (*User, error) {
 
 	return &u, nil
 }
-func (m *Model) HasPermission(id int, p *permission.Permission) (bool, error) {
+func (m *Model) HasPermission(id uuid.UUID, p *permission.Permission) (bool, error) {
 	res, err := m.Db.Table("users").Select(
 		"permissions.id as permission_id",
 		"permissions.resource as permission_resource",
 		"permissions.operation as permission_operation",
 	).
-		Where("users.id", "=", id).
+		Where("users.id", "=", id.String()).
 		AndWhere("permissions.resource", "=", p.Resource).
 		AndWhere("permissions.operation", "=", p.Operation).
 		LeftJoin("users_roles", "users.id", "=", "users_roles.user_id").
@@ -376,11 +378,11 @@ func (m *Model) HasPermission(id int, p *permission.Permission) (bool, error) {
 
 	return true, nil
 }
-func (m *Model) HasVerifiedEmail(id int) (bool, error) {
+func (m *Model) HasVerifiedEmail(id uuid.UUID) (bool, error) {
 	res, err := m.Db.Table("users").Select(
 		"verified_email",
 	).
-		Where("users.id", "=", id).
+		Where("users.id", "=", id.String()).
 		Get()
 	if err != nil {
 		return false, err
@@ -391,11 +393,11 @@ func (m *Model) HasVerifiedEmail(id int) (bool, error) {
 	verifiedEmail := res[0]["verified_email"].(bool)
 	return verifiedEmail, nil
 }
-func (m *Model) HasVerifiedPhone(id int) (bool, error) {
+func (m *Model) HasVerifiedPhone(id uuid.UUID) (bool, error) {
 	res, err := m.Db.Table("users").Select(
 		"verified_phone",
 	).
-		Where("users.id", "=", id).
+		Where("users.id", "=", id.String()).
 		Get()
 	if err != nil {
 		return false, err
@@ -406,8 +408,8 @@ func (m *Model) HasVerifiedPhone(id int) (bool, error) {
 	verifiedPhone := res[0]["verified_phone"].(bool)
 	return verifiedPhone, nil
 }
-func (m *Model) GetPhoto(id int) (string, error) {
-	res, err := m.Db.Table("users").Select("photo_name").Where("id", "=", id).Get()
+func (m *Model) GetPhoto(id uuid.UUID) (string, error) {
+	res, err := m.Db.Table("users").Select("photo_name").Where("id", "=", id.String()).Get()
 	if err != nil {
 		return "", err
 	}
@@ -421,8 +423,8 @@ func (m *Model) GetPhoto(id int) (string, error) {
 
 	return res[0]["photo_name"].(string), nil
 }
-func (m *Model) GetCV(id int) (string, error) {
-	res, err := m.Db.Table("users").Select("cv_name").Where("id", "=", id).Get()
+func (m *Model) GetCV(id uuid.UUID) (string, error) {
+	res, err := m.Db.Table("users").Select("cv_name").Where("id", "=", id.String()).Get()
 	if err != nil {
 		return "", err
 	}
@@ -450,8 +452,8 @@ func (m *Model) Insert(u *User) error {
 	defer tx.Rollback()
 
 	// Insert user
-	columns := "username, email, password, nick"
-	values := "'" + u.Username + "', '" + strings.ToLower(u.Email) + "', '" + u.Password + "', '" + nick + "'"
+	columns := "id, username, email, password, nick"
+	values := "'" + uuid.NewString() + "', '" + strings.ToLower(u.Username) + "', '" + strings.ToLower(u.Email) + "', '" + u.Password + "', '" + nick + "'"
 	if u.FirstName != "" {
 		columns += ", first_name"
 		values += ", '" + u.FirstName + "'"
@@ -482,7 +484,7 @@ func (m *Model) Insert(u *User) error {
 	}
 	if count == 1 {
 		// get last inserted user id
-		var userID int
+		var userID string
 		row := tx.QueryRow("SELECT id FROM users LIMIT 1")
 		err = row.Scan(&userID)
 		if err != nil {
@@ -490,16 +492,16 @@ func (m *Model) Insert(u *User) error {
 		}
 
 		// get superadmin role id
-		var superadminID int
+		var superadminRoleID int
 		row = tx.QueryRow("SELECT id FROM roles WHERE name = 'superadmin';")
-		err = row.Scan(&superadminID)
+		err = row.Scan(&superadminRoleID)
 		if err != nil {
 			return err
 		}
 
 		// Assign role to user (insert users_roles)
 		_, err = tx.Exec("INSERT INTO users_roles (user_id, role_id) VALUES " +
-			"(" + fmt.Sprint(userID) + ", " + fmt.Sprint(superadminID) + ");")
+			"('" + userID + "', " + fmt.Sprint(superadminRoleID) + ");")
 		if err != nil {
 			return err
 		}
@@ -527,14 +529,16 @@ func (m *Model) Update(u *User) error {
 	if len(colValues) > 0 {
 		colValues["updated_at"] = "NOW()"
 	}
-	_, err := m.Db.Table("users").Where("id", "=", u.ID).Update(colValues)
+	_, err := m.Db.Table("users").Where("id", "=", u.ID.String()).Update(colValues)
 	return err
 }
-func (m *Model) UpdatePassword(id int, password string) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"password": password, "last_password_change": "NOW()"})
+func (m *Model) UpdatePassword(id uuid.UUID, password string) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"password": password, "last_password_change": "NOW()"})
 	return err
 }
-func (m *Model) UpdateRoles(id int, roleIDs ...int) error {
+func (m *Model) UpdateRoles(id uuid.UUID, roleIDs ...int) error {
 	if len(roleIDs) == 0 {
 		return errors.New("no role id parameter was given")
 	}
@@ -547,7 +551,7 @@ func (m *Model) UpdateRoles(id int, roleIDs ...int) error {
 	defer tx.Rollback()
 
 	// Clear user roles
-	_, err = tx.Exec("DELETE from users_roles WHERE user_id = " + fmt.Sprint(id) + ";")
+	_, err = tx.Exec("DELETE from users_roles WHERE user_id = '" + id.String() + "';")
 	if err != nil {
 		return err
 	}
@@ -555,7 +559,7 @@ func (m *Model) UpdateRoles(id int, roleIDs ...int) error {
 	// Assign roles to user (insert users_roles)
 	values := ""
 	for _, roleID := range roleIDs {
-		values += "(" + fmt.Sprint(id) + ", " + fmt.Sprint(roleID) + "),"
+		values += "('" + id.String() + "', " + fmt.Sprint(roleID) + "),"
 	}
 	values = strings.TrimSuffix(values, ",")
 
@@ -567,42 +571,52 @@ func (m *Model) UpdateRoles(id int, roleIDs ...int) error {
 	// Commit
 	return tx.Commit()
 }
-func (m *Model) UpdatePhoto(id int, photoName string) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"photo_name": photoName})
+func (m *Model) UpdatePhoto(id uuid.UUID, photoName string) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"photo_name": photoName})
 	return err
 }
-func (m *Model) UpdateCV(id int, cvName string) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"cv_name": cvName})
+func (m *Model) UpdateCV(id uuid.UUID, cvName string) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"cv_name": cvName})
 	return err
 }
-func (m *Model) VerifyEmail(id int) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{
-		"verified_email": "true",
-	})
+func (m *Model) VerifyEmail(id uuid.UUID) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"verified_email": "true"})
 	return err
 }
-func (m *Model) Ban(id int, banExpire time.Time) error {
+func (m *Model) Ban(id uuid.UUID, banExpire time.Time) error {
 	sqlStatement := `
 		UPDATE users
 		SET ban_date = $2, ban_expire = $3
 		WHERE id = $1;`
 
-	_, err := m.Db.Sql().Exec(sqlStatement, id, "NOW()", banExpire)
+	_, err := m.Db.Sql().Exec(sqlStatement, id.String(), "NOW()", banExpire)
 
 	return err
 }
-func (m *Model) Unban(id int) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{
-		"ban_date":   nil,
-		"ban_expire": nil,
-	})
+func (m *Model) Unban(id uuid.UUID) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{
+			"ban_date":   nil,
+			"ban_expire": nil,
+		})
 	return err
 }
-func (m *Model) Restore(id int) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"deleted_at": nil})
+func (m *Model) Restore(id uuid.UUID) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"deleted_at": nil})
 	return err
 }
-func (m *Model) Delete(id int) error {
-	_, err := m.Db.Table("users").Where("id", "=", id).Update(map[string]interface{}{"deleted_at": "NOW()"})
+func (m *Model) Delete(id uuid.UUID) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"deleted_at": "NOW()"})
 	return err
 }

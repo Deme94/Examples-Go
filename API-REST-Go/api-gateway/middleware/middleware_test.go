@@ -148,15 +148,13 @@ func testAuth(t *testing.T) {
 
 // utils
 func signUpTestUsers() {
+	// signup admin
 	msTimeout := 15000
-	req := test.NewRequest(&test.RequestParams{
+	_, err := app.Test(test.NewRequest(&test.RequestParams{
 		Method: "POST",
 		Path:   basePath + "/public/users",
 		Body:   testUserAdmin,
-	})
-
-	// signup admin
-	_, err := app.Test(req, msTimeout)
+	}), msTimeout)
 	if err != nil {
 		log.Fatal(err)
 	}

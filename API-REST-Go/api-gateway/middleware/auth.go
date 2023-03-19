@@ -1,16 +1,14 @@
 package middleware
 
 import (
+	"API-REST/api-gateway/controllers"
 	util "API-REST/api-gateway/utilities"
 	"API-REST/services/conf"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/pascaldekloe/jwt"
 )
 
 func CheckToken(ctx *fiber.Ctx) error {
@@ -33,31 +31,13 @@ func CheckToken(ctx *fiber.Ctx) error {
 	}
 
 	token := headerParts[1]
-	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.Env.GetString("JWT_AUTH_SECRET")))
+	userID, err := controllers.User.Auth.ValidateJwtToken([]byte(token), conf.Env.GetString("JWT_AUTH_SECRET"))
 	if err != nil {
-		return util.ErrorJSON(ctx, errors.New("unauthorized - invalid token"), http.StatusUnauthorized)
-	}
-
-	if !claims.Valid(time.Now()) {
-		return util.ErrorJSON(ctx, errors.New("unauthorized - token expired"), http.StatusUnauthorized)
-	}
-
-	domain := conf.Env.GetString("DOMAIN")
-	if !claims.AcceptAudience(domain) {
-		return util.ErrorJSON(ctx, errors.New("unauthorized - invalid audience"), http.StatusUnauthorized)
-	}
-
-	if claims.Issuer != domain {
-		return util.ErrorJSON(ctx, errors.New("unauthorized - invalid issuer"), http.StatusUnauthorized)
-	}
-
-	claimerID, err := strconv.Atoi(claims.Subject)
-	if err != nil {
-		return util.ErrorJSON(ctx, errors.New("unauthorized - invalid claimer"), http.StatusUnauthorized)
+		return util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 	}
 
 	// Add claimer ID and claimer roles to header, so we know who is making this request
-	ctx.Locals("Claimer-ID", claimerID)
+	ctx.Locals("Claimer-ID", userID.String())
 
 	return ctx.Next()
 }

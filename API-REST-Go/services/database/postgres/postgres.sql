@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS permissions;
 
 -- Users
 CREATE TABLE users (
-	id serial PRIMARY KEY,
+	id VARCHAR ( 50 ) PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_at TIMESTAMP,
 	deleted_at TIMESTAMP,
@@ -50,7 +50,7 @@ CREATE TABLE permissions (
 
 -- Users-Roles
 CREATE TABLE users_roles (
-  user_id INT NOT NULL,
+  user_id VARCHAR ( 50 ) NOT NULL,
   role_id INT NOT NULL,
   grant_date TIMESTAMP NOT NULL DEFAULT NOW(),
   PRIMARY KEY (user_id, role_id),

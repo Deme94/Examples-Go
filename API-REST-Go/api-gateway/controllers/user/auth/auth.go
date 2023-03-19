@@ -1,11 +1,13 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/pascaldekloe/jwt"
 	"golang.org/x/crypto/bcrypt"
 
@@ -41,6 +43,33 @@ func (Controller) GenerateJwtToken(subject string, secret string) ([]byte, error
 	return token, nil
 }
 
+func (Controller) ValidateJwtToken(token []byte, secret string) (uuid.UUID, error) {
+	claims, err := jwt.HMACCheck(token, []byte(secret))
+	if err != nil {
+		return uuid.Nil, errors.New("unauthorized - invalid token")
+	}
+
+	if !claims.Valid(time.Now()) {
+		return uuid.Nil, errors.New("unauthorized - token expired")
+	}
+
+	domain := conf.Env.GetString("DOMAIN")
+	if !claims.AcceptAudience(domain) {
+		return uuid.Nil, errors.New("unauthorized - invalid audience")
+	}
+
+	if claims.Issuer != domain {
+		return uuid.Nil, errors.New("unauthorized - invalid issuer")
+	}
+
+	id, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return uuid.Nil, errors.New("unauthorized - invalid claimer")
+	}
+
+	return id, nil
+}
+
 func (Controller) generateRandomPassword() string {
 	password, _ := pswd.Generate(8, 4, 4, true, true)
 	return password
@@ -71,7 +100,7 @@ func (Controller) GenerateConfirmationEmail(token []byte) string {
 	return html
 }
 
-func (c *Controller) GetRoles(userID int) ([]string, error) {
+func (c *Controller) GetRoles(userID uuid.UUID) ([]string, error) {
 	user, err := c.Model.Get(userID)
 
 	var roleNames []string
@@ -81,11 +110,11 @@ func (c *Controller) GetRoles(userID int) ([]string, error) {
 	return roleNames, err
 }
 
-func (c *Controller) HasPermission(userID int, resource string, operation string) (bool, error) {
+func (c *Controller) HasPermission(userID uuid.UUID, resource string, operation string) (bool, error) {
 	return c.Model.HasPermission(userID, &permission.Permission{Resource: resource, Operation: operation})
 }
 
-func (c *Controller) HasVerifiedEmail(userID int) (bool, error) {
+func (c *Controller) HasVerifiedEmail(userID uuid.UUID) (bool, error) {
 	return c.Model.HasVerifiedEmail(userID)
 }
 

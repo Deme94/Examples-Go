@@ -16,9 +16,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
@@ -110,7 +110,7 @@ func (c *Controller) GetAll(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, allResponse)
 }
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -124,7 +124,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, u, "user")
 }
 func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -139,7 +139,7 @@ func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
 	return ctx.SendFile(filePath)
 }
 func (c *Controller) GetCV(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -197,7 +197,7 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, "user created successfully", "response")
 }
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -229,7 +229,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -254,7 +254,7 @@ func (c *Controller) UpdateRoles(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -305,7 +305,7 @@ func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -336,7 +336,7 @@ func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Ban(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -360,7 +360,7 @@ func (c *Controller) Ban(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Unban(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -374,7 +374,7 @@ func (c *Controller) Unban(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Restore(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)
@@ -388,7 +388,7 @@ func (c *Controller) Restore(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		logger.Logger.Print(errors.New("invalid id parameter"))
 		return util.ErrorJSON(ctx, err)

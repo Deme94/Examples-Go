@@ -3,10 +3,12 @@ package user
 import (
 	"API-REST/services/database/postgres/models/role"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
-	ID        int        `json:"id"`
+	ID        uuid.UUID  `json:"id"`
 	CreatedAt *time.Time `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`

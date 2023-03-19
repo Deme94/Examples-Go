@@ -8,12 +8,13 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 func VerifyEmail(ctx *fiber.Ctx) error {
 	if conf.Conf.GetBool("verifyEmail") {
-		claimerID := ctx.Locals("Claimer-ID").(int)
-		verifiedEmail, err := controllers.User.Auth.HasVerifiedEmail(claimerID)
+		claimerID := ctx.Locals("Claimer-ID").(string)
+		verifiedEmail, err := controllers.User.Auth.HasVerifiedEmail(uuid.MustParse(claimerID))
 		if err != nil {
 			return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 		}

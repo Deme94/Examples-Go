@@ -15,14 +15,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/kolesa-team/go-webp/decoder"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
-	"github.com/pascaldekloe/jwt"
 )
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
@@ -77,30 +76,15 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 }
 func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 	token := ctx.Params("token")
-	claims, err := jwt.HMACCheck([]byte(token), []byte(conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET")))
+
+	// Validate Token
+	userID, err := c.ValidateJwtToken([]byte(token), conf.Env.GetString("JWT_CONFIRM_EMAIL_SECRET"))
 	if err != nil {
-		return util.ErrorJSON(ctx, errors.New("invalid token"))
+		return util.ErrorJSON(ctx, err, http.StatusUnauthorized)
 	}
 
-	if !claims.Valid(time.Now()) {
-		return util.ErrorJSON(ctx, errors.New("token expired"))
-	}
-
-	domain := conf.Env.GetString("DOMAIN")
-	if !claims.AcceptAudience(domain) {
-		return util.ErrorJSON(ctx, errors.New("invalid audience"))
-	}
-
-	if claims.Issuer != domain {
-		return util.ErrorJSON(ctx, errors.New("invalid issuer"))
-	}
-
-	claimerID, err := strconv.Atoi(claims.Subject)
-	if err != nil {
-		return util.ErrorJSON(ctx, errors.New("invalid claimer"))
-	}
-
-	u, err := c.Model.Get(claimerID)
+	// Check email is not already verified
+	u, err := c.Model.Get(userID)
 	if err != nil {
 		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}
@@ -108,7 +92,8 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 		return util.ErrorJSON(ctx, errors.New("email already verified"))
 	}
 
-	err = c.Model.VerifyEmail(claimerID)
+	// Verify email
+	err = c.Model.VerifyEmail(userID)
 	if err != nil {
 		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}
@@ -116,7 +101,7 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	u, err := c.Model.Get(claimerID)
 	if err != nil {
@@ -180,7 +165,7 @@ func (c *Controller) ResetPassword(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	u, err := c.Model.Get(claimerID)
 	if err != nil {
@@ -204,7 +189,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, userResponse, "user")
 }
 func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	imageName, err := c.Model.GetPhoto(claimerID)
 	if err != nil {
@@ -215,7 +200,7 @@ func (c *Controller) GetPhoto(ctx *fiber.Ctx) error {
 	return ctx.SendFile(filePath)
 }
 func (c *Controller) GetCV(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	cvName, err := c.Model.GetCV(claimerID)
 	if err != nil {
@@ -226,7 +211,7 @@ func (c *Controller) GetCV(ctx *fiber.Ctx) error {
 	return ctx.SendFile(filePath)
 }
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	var req payloads.UpdateRequest
 	err := ctx.BodyParser(&req)
@@ -254,7 +239,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) ChangePassword(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	var req payloads.ChangePasswordRequest
 
@@ -290,7 +275,7 @@ func (c *Controller) ChangePassword(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	var req payloads.UpdatePhotoRequest
 
@@ -337,7 +322,7 @@ func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	// Retrieve the file
 	file, err := ctx.FormFile("file")
@@ -364,7 +349,7 @@ func (c *Controller) UpdateCV(ctx *fiber.Ctx) error {
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
-	claimerID := ctx.Locals("Claimer-ID").(int)
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	err := c.Model.Delete(claimerID)
 	if err != nil {
