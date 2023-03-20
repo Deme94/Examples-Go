@@ -3,6 +3,8 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,6 +70,33 @@ func (Controller) ValidateJwtToken(token []byte, secret string) (uuid.UUID, erro
 	}
 
 	return id, nil
+}
+
+func (Controller) Compute6DigitsCode(id uuid.UUID, jwtToken string, secret string) (int, error) {
+	idBytes := []byte(id.String())
+	chunkTokenBytes := []byte(jwtToken[len(jwtToken)-36:])
+	secretBytes := []byte(secret)
+	secretSize := len(secretBytes)
+	sum := make([]byte, 36)
+	for i, idByte := range idBytes {
+		sum[i] = idByte + chunkTokenBytes[len(chunkTokenBytes)-1-i]
+		sum[i] += secretBytes[int(sum[i])%secretSize]
+	}
+	str1 := strconv.Itoa(int(sum[14]))
+	str2 := strconv.Itoa(int(sum[2]))
+	str3 := strconv.Itoa(int(sum[8]))
+	str4 := strconv.Itoa(int(sum[19]))
+	str5 := strconv.Itoa(int(sum[34]))
+	str6 := strconv.Itoa(int(sum[25]))
+	codeString :=
+		strconv.Itoa(int(str1[len(str1)-1]-'0')) +
+			strconv.Itoa(int(str2[len(str2)-1]-'0')) +
+			strconv.Itoa(int(str3[len(str3)-1]-'0')) +
+			strconv.Itoa(int(str4[len(str4)-1]-'0')) +
+			strconv.Itoa(int(str5[len(str5)-1]-'0')) +
+			strconv.Itoa(int(str6[len(str6)-1]-'0'))
+	log.Println(codeString)
+	return strconv.Atoi(codeString)
 }
 
 func (Controller) generateRandomPassword() string {
