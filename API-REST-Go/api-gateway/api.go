@@ -68,7 +68,9 @@ func NewRouter() *fiber.App {
 	pub.Post("/auth/login", controllers.User.Auth.Login)
 	pub.Post("/auth/confirm-email/:token", controllers.User.Auth.ConfirmEmail)
 	pub.Put("/auth/reset-password", controllers.User.Auth.ResetPassword)
-	pvt.Post("/auth/resend-confirmation-email", controllers.User.Auth.ResendConfirmationEmail)
+	pvt.Post("/auth/send-confirmation-email", controllers.User.Auth.SendConfirmationEmail)
+	pvt.Post("/auth/confirm-phone/:code", controllers.User.Auth.ConfirmPhone)
+	pvt.Post("/auth/send-confirmation-phone", controllers.User.Auth.SendConfirmationPhone)
 
 	pvt.Get("/users/me", controllers.User.Auth.Get)
 	pvt.Get("/users/me/photo", controllers.User.Auth.GetPhoto)

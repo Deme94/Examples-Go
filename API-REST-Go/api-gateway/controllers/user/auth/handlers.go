@@ -7,6 +7,7 @@ import (
 	"API-REST/services/database/postgres/models/user"
 	"API-REST/services/logger"
 	"API-REST/services/mail"
+	"API-REST/services/sms"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -15,6 +16,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -84,11 +87,11 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 	}
 
 	// Check email is not already verified
-	u, err := c.Model.Get(userID)
+	verified, err := c.Model.HasVerifiedEmail(userID)
 	if err != nil {
-		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+		return util.ErrorJSON(ctx, err, http.StatusConflict)
 	}
-	if u.VerifiedEmail {
+	if verified {
 		return util.ErrorJSON(ctx, errors.New("email already verified"))
 	}
 
@@ -100,7 +103,7 @@ func (c *Controller) ConfirmEmail(ctx *fiber.Ctx) error {
 
 	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
 }
-func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
+func (c *Controller) SendConfirmationEmail(ctx *fiber.Ctx) error {
 	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
 
 	u, err := c.Model.Get(claimerID)
@@ -123,6 +126,80 @@ func (c *Controller) ResendConfirmationEmail(ctx *fiber.Ctx) error {
 		Subject: "Confirm email",
 		Body:    c.GenerateConfirmationEmail(token),
 	})
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	return util.WriteJSON(ctx, http.StatusOK, true, "OK")
+}
+func (c *Controller) ConfirmPhone(ctx *fiber.Ctx) error {
+	code := ctx.Params("code")
+	if len(code) < 6 {
+		return util.ErrorJSON(ctx, errors.New("invalid code"))
+	}
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
+	// Check phone is not already verified
+	verified, err := c.Model.HasVerifiedPhone(claimerID)
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusConflict)
+	}
+	if verified {
+		return util.ErrorJSON(ctx, errors.New("phone already verified"))
+	}
+
+	// Init params required to compute code
+	claimerToken := strings.Split(ctx.Get("Authorization"), " ")[1]
+	secret := conf.Env.GetString("CONFIRM_PHONE_SECRET")
+	codeDuration := conf.Env.GetString("CONFIRM_PHONE_DURATION")
+	duration, err := strconv.Atoi(codeDuration)
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	// Compute codes from last <duration> minutes and compare with given code
+	for i := 0; i < duration; i++ {
+		computedCode, err := c.Compute6DigitsCode(claimerID,
+			claimerToken,
+			secret,
+			time.Now().Add(-time.Minute*time.Duration(i)),
+		)
+		if err != nil {
+			return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+		}
+		// Success
+		if code == computedCode {
+			err = c.Model.VerifyPhone(claimerID)
+			if err != nil {
+				return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+			}
+			return util.WriteJSON(ctx, http.StatusOK, true, "OK")
+		}
+	}
+	return util.ErrorJSON(ctx, errors.New("invalid code"))
+}
+func (c *Controller) SendConfirmationPhone(ctx *fiber.Ctx) error {
+	claimerID := uuid.MustParse(ctx.Locals("Claimer-ID").(string))
+	claimerToken := strings.Split(ctx.Get("Authorization"), " ")[1]
+
+	u, err := c.Model.Get(claimerID)
+	if err != nil {
+		return util.ErrorJSON(ctx, err)
+	}
+
+	if u.VerifiedPhone {
+		return util.ErrorJSON(ctx, errors.New("phone already verified"))
+	}
+
+	code, err := c.Compute6DigitsCode(claimerID,
+		claimerToken,
+		conf.Env.GetString("CONFIRM_PHONE_SECRET"),
+		time.Now(),
+	)
+	if err != nil {
+		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
+	}
+
+	err = sms.Send(u.Phone, code)
 	if err != nil {
 		return util.ErrorJSON(ctx, err, http.StatusInternalServerError)
 	}

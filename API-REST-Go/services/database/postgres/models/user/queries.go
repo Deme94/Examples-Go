@@ -589,6 +589,12 @@ func (m *Model) VerifyEmail(id uuid.UUID) error {
 		Update(map[string]interface{}{"verified_email": "true"})
 	return err
 }
+func (m *Model) VerifyPhone(id uuid.UUID) error {
+	_, err := m.Db.Table("users").
+		Where("id", "=", id.String()).
+		Update(map[string]interface{}{"verified_phone": "true"})
+	return err
+}
 func (m *Model) Ban(id uuid.UUID, banExpire time.Time) error {
 	sqlStatement := `
 		UPDATE users
