@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -72,7 +72,7 @@ func (Controller) ValidateJwtToken(token []byte, secret string) (uuid.UUID, erro
 	return id, nil
 }
 
-func (Controller) Compute6DigitsCode(id uuid.UUID, jwtToken string, secret string) (int, error) {
+func (Controller) Compute6DigitsCode(id uuid.UUID, jwtToken string, secret string, t time.Time) (string, error) {
 	idBytes := []byte(id.String())
 	chunkTokenBytes := []byte(jwtToken[len(jwtToken)-36:])
 	secretBytes := []byte(secret)
@@ -95,8 +95,22 @@ func (Controller) Compute6DigitsCode(id uuid.UUID, jwtToken string, secret strin
 			strconv.Itoa(int(str4[len(str4)-1]-'0')) +
 			strconv.Itoa(int(str5[len(str5)-1]-'0')) +
 			strconv.Itoa(int(str6[len(str6)-1]-'0'))
-	log.Println(codeString)
-	return strconv.Atoi(codeString)
+
+	codeFloat, err := strconv.ParseFloat(codeString, 64)
+	if err != nil {
+		return "", err
+	}
+
+	tStr := t.Format("02T15:04")
+	tStr = strings.ReplaceAll(tStr, "T", "")
+	tStr = strings.ReplaceAll(tStr, ":", "")
+	tStr = "0." + tStr
+	tFloat, _ := strconv.ParseFloat(tStr, 64)
+
+	codeFloatPow := math.Pow(codeFloat, tFloat)
+	finalCodeStr := fmt.Sprintf("%v", codeFloatPow)
+	finalCodeStr = finalCodeStr[len(finalCodeStr)-6:]
+	return finalCodeStr, nil
 }
 
 func (Controller) generateRandomPassword() string {
