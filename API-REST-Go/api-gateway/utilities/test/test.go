@@ -2,9 +2,9 @@ package test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 
@@ -41,9 +41,9 @@ func NewRequest(r *RequestParams) *http.Request {
 
 func BodyToString(body io.ReadCloser) string {
 	// read response body
-	bytes, error := ioutil.ReadAll(body)
-	if error != nil {
-		fmt.Println(error)
+	bytes, err := ioutil.ReadAll(body)
+	if err != nil {
+		log.Fatal(err)
 	}
 	// close response body
 	body.Close()
