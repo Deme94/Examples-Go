@@ -25,13 +25,15 @@ func Setup() error {
 	host := conf.Env.GetString("POSTGRES_DB_HOST")
 	port := conf.Env.GetString("POSTGRES_DB_PORT")
 	postgresDB := conf.Env.GetString("POSTGRES_DB")
+	ssl := conf.Env.GetString("POSTGRES_SSL")
 
-	postgresURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+	postgresURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		username,
 		password,
 		host,
 		port,
 		postgresDB,
+		ssl,
 	)
 	// Connect DB
 	postgresClient := buildsqlx.NewConnection("postgres", postgresURI)
@@ -110,9 +112,11 @@ func createDB() (*sql.DB, error) {
 	port := conf.Env.GetString("POSTGRES_DB_PORT")
 	postgresDefaultDB := conf.Env.GetString("POSTGRES_DEFAULT_DB")
 	postgresDB := conf.Env.GetString("POSTGRES_DB")
+	ssl := conf.Env.GetString("POSTGRES_SSL")
 
 	// Open default DB
-	db, err := sql.Open("postgres", "postgres://"+username+":"+password+"@"+host+":"+port+"/"+postgresDefaultDB)
+	db, err := sql.Open("postgres",
+		"postgres://"+username+":"+password+"@"+host+":"+port+"/"+postgresDefaultDB+"?sslmode="+ssl)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +131,8 @@ func createDB() (*sql.DB, error) {
 	}
 
 	// Open new DB
-	db, err = sql.Open("postgres", "postgres://"+username+":"+password+"@"+host+":"+port+"/"+postgresDB)
+	db, err = sql.Open("postgres",
+		"postgres://"+username+":"+password+"@"+host+":"+port+"/"+postgresDB+"?sslmode="+ssl)
 	if err != nil {
 		return nil, err
 	}
