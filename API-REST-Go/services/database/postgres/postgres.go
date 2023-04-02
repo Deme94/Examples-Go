@@ -145,6 +145,7 @@ func createDBDockertest() (*sql.DB, error) {
 	password := conf.Env.GetString("POSTGRES_DB_PASSWORD")
 	port := conf.Env.GetString("POSTGRES_DB_PORT")
 	postgresDB := conf.Env.GetString("POSTGRES_DB")
+	ssl := conf.Env.GetString("POSTGRES_SSL")
 
 	// DOCKERTEST
 	var db *sql.DB
@@ -183,8 +184,8 @@ func createDBDockertest() (*sql.DB, error) {
 
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	if err := pool.Retry(func() error {
-		uri := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
-			username, password, resource.GetHostPort(port+"/tcp"), postgresDB)
+		uri := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+			username, password, resource.GetHostPort(port+"/tcp"), postgresDB, ssl)
 		db, err = sql.Open("postgres", uri)
 		if err != nil {
 			return err
