@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS users_roles;
 DROP TABLE IF EXISTS roles_permissions;
+DROP TABLE IF EXISTS features; -- Only if using timescaledb
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS permissions;
@@ -72,3 +73,20 @@ CREATE TABLE roles_permissions (
       REFERENCES roles (id) ON DELETE CASCADE
 );
 
+-- ONLY IF USING TIMESCALEDB
+CREATE EXTENSION IF NOT EXISTS postgis;
+-- Features (1:M)
+CREATE TABLE features (
+  geom geometry(Point, 4326) NOT NULL,
+  timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+  user_id VARCHAR ( 50 ) NOT NULL,
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id)
+);
+SELECT create_hypertable('features','timestamp');
+CREATE INDEX ix_geom_timestamp ON features (geom, timestamp DESC); -- efficient queries on geom and timestamp
+ALTER TABLE features SET ( -- enables data compression
+  timescaledb.compress,
+  timescaledb.compress_orderby = 'timestamp DESC',
+  timescaledb.compress_segmentby = 'user_id'
+);
+SELECT add_compression_policy('features', INTERVAL '2 weeks'); -- add compression policy for 2 weeks old data
