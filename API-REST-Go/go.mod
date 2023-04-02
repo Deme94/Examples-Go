@@ -5,6 +5,7 @@ go 1.19
 require (
 	cloud.google.com/go/storage v1.29.0
 	github.com/arthurkushman/buildsqlx v0.8.7
+	github.com/cridenour/go-postgis v1.0.0
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/goccy/go-json v0.10.0
 	github.com/gofiber/fiber/v2 v2.42.0

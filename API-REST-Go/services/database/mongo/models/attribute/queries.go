@@ -3,7 +3,6 @@ package attribute
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -46,7 +45,7 @@ func (m *Model) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[s
 		var att Attribute
 		err := cur.Decode(&att)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		atts = append(atts, &att)

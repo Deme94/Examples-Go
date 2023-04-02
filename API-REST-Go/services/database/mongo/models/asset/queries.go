@@ -3,7 +3,6 @@ package asset
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -50,7 +49,7 @@ func (m *Model) GetAll(fromDate time.Time, toDate time.Time, filterOptions map[s
 		var asset Asset
 		err := cur.Decode(&asset)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		assets = append(assets, &asset)
@@ -123,7 +122,7 @@ func (m *Model) GetWithAttributes(id string) (*Asset, error) {
 		//Create a value into which the single document can be decoded
 		err := cur.Decode(&asset)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
@@ -162,7 +161,7 @@ func (m *Model) GetNames(fromDate time.Time, toDate time.Time) ([]*Asset, error)
 		var asset Asset
 		err := cur.Decode(&asset)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		assets = append(assets, &asset)

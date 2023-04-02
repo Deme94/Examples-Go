@@ -17,6 +17,7 @@ roles: # first user created is superadmin
     users: [read, assign, update, delete]
     roles: [read, create, assign, update, delete]
     permissions: [read, create, update, delete]
+    features: [read]
     assets: [read, create, update, delete]
     attributes: [read, create, update, delete]
   asset-manager:
@@ -24,6 +25,10 @@ roles: # first user created is superadmin
     attributes: [read, create, update, delete]
   HR:
     users: [read]
+  disabled:
+    features: [create]
+  attendant:
+    features: [read]
 # Storage
 storage:
   local: 

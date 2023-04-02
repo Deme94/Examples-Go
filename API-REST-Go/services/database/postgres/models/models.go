@@ -1,6 +1,7 @@
 package models
 
 import (
+	"API-REST/services/database/postgres/models/feature"
 	"API-REST/services/database/postgres/models/permission"
 	"API-REST/services/database/postgres/models/role"
 	"API-REST/services/database/postgres/models/user"
@@ -12,6 +13,7 @@ var (
 	User       *user.Model
 	Role       *role.Model
 	Permission *permission.Model
+	Feature    *feature.Model
 	// ...
 )
 
@@ -27,6 +29,10 @@ func Build(postgresDB *buildsqlx.DB) error {
 		return err
 	}
 	Permission, err = permission.New(postgresDB)
+	if err != nil {
+		return err
+	}
+	Feature, err = feature.New(postgresDB)
 	if err != nil {
 		return err
 	}

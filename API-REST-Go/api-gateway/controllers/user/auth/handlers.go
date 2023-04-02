@@ -12,7 +12,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -386,7 +385,7 @@ func (c *Controller) UpdatePhoto(ctx *fiber.Ctx) error {
 	// Encode image into file
 	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 75)
 	if err != nil {
-		log.Fatalln(err)
+		return util.ErrorJSON(ctx, err)
 	}
 	webp.Encode(f, image, options)
 	logger.Logger.Println("user's photo saved")

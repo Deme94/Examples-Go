@@ -92,6 +92,7 @@ func TestMain(m *testing.M) {
 func TestAll(t *testing.T) {
 	testCORS(t)
 	testAuth(t)
+	testVerification(t)
 }
 
 func testCORS(t *testing.T) {
@@ -125,6 +126,32 @@ func testAuth(t *testing.T) {
 	res, err := app.Test(test.NewRequest(&test.RequestParams{
 		Method: "GET",
 		Path:   basePath + "/private/",
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	signUpTestUsers()
+	loginTestUserAdmin()
+
+	res, err = app.Test(test.NewRequest(&test.RequestParams{
+		Method:  "GET",
+		Path:    basePath + "/private/",
+		Headers: headers,
+		Cookies: cookies,
+	}), msTimeout)
+	if err != nil {
+		log.Fatal(err)
+	}
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+func testVerification(t *testing.T) {
+	msTimeout := 2000
+	res, err := app.Test(test.NewRequest(&test.RequestParams{
+		Method: "GET",
+		Path:   basePath + "/private/verified/",
 	}), msTimeout)
 	if err != nil {
 		log.Fatal(err)

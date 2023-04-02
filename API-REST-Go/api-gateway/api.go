@@ -80,6 +80,7 @@ func NewRouter() *fiber.App {
 	pvt.Put("/users/me/photo", controllers.User.Auth.UpdatePhoto)
 	pvt.Put("/users/me/cv", controllers.User.Auth.UpdateCV)
 	pvt.Delete("/users/me", controllers.User.Auth.Delete)
+	pvtVer.Post("users/me/features", middleware.CheckPermission("features", "create"), controllers.Feature.Insert)
 
 	pvtVer.Get("/users", middleware.CheckPermission("users", "read"), controllers.User.GetAll)
 	pvtVer.Get("/users/:id", middleware.CheckPermission("users", "read"), controllers.User.Get)
@@ -107,6 +108,9 @@ func NewRouter() *fiber.App {
 	pvtVer.Post("/permissions", middleware.CheckPermission("permissions", "create"), controllers.Permission.Insert)
 	pvtVer.Put("/permissions/:id", middleware.CheckPermission("permissions", "update"), controllers.Permission.Update)
 	pvtVer.Delete("/permissions/:id", middleware.CheckPermission("permissions", "delete"), controllers.Permission.Delete)
+
+	pvtVer.Get("/features", middleware.CheckPermission("features", "read"), controllers.Feature.GetAll)
+	pvtVer.Get("/features/:userId", middleware.CheckPermission("features", "read"), controllers.Feature.GetByUserID)
 
 	pvtVer.Get("/assets", middleware.CheckPermission("assets", "read"), controllers.Asset.GetAll)
 	pvtVer.Get("/assets/:id", middleware.CheckPermission("assets", "read"), controllers.Asset.Get)
