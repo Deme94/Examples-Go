@@ -1,5 +1,6 @@
 # API
 apiBasePath: "/api/v1"
+gisBasePath: "/gis" # maplibre martin
 verifyEmail: true
 # Logger
 logDir: ""

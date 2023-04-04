@@ -7,6 +7,7 @@ import (
 	"API-REST/api-gateway"
 	"API-REST/services/conf"
 	"API-REST/services/database"
+	"API-REST/services/gis"
 	"API-REST/services/logger"
 	"API-REST/services/mail"
 	"API-REST/services/sms"
@@ -81,6 +82,14 @@ var rootCmd = &cobra.Command{
 			log.Fatal("\033[31m"+"DATABASE SERVICE FAILED"+"\033[0m"+" -> ", err)
 		}
 		log.Println("\033[32m" + "DATABASE SERVICE IS RUNNING" + "\033[0m")
+
+		// GIS MapLibre Martin (Vector tiles server)
+		log.Println("Loading GIS service...")
+		err = gis.Setup()
+		if err != nil {
+			log.Fatal("\033[31m"+"MARTIN SERVER IS NOT RUNNING"+"\033[0m"+" -> ", err)
+		}
+		log.Println("\033[32m" + "MARTIN SERVER IS RUNNING" + "\033[0m")
 
 		// API-Gateway
 		log.Println("Loading api-gateway...")

@@ -3,13 +3,16 @@ package feature
 import (
 	"API-REST/api-gateway/controllers/feature/payloads"
 	util "API-REST/api-gateway/utilities"
+	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/feature"
 	psql "API-REST/services/database/postgres/predicates"
 	"API-REST/services/logger"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/proxy"
 	"github.com/google/uuid"
 )
 
@@ -95,4 +98,24 @@ func (c *Controller) Insert(ctx *fiber.Ctx) error {
 	}
 
 	return util.WriteJSON(ctx, http.StatusOK, "feature created successfully", "response")
+}
+
+func (c *Controller) GetVectorTiles(ctx *fiber.Ctx) error {
+	proxyPath := ctx.Params("*")
+	queryParams := ctx.Context().QueryArgs().QueryString()
+	if len(queryParams) > 0 {
+		proxyPath += "?" + string(queryParams)
+	}
+
+	url := fmt.Sprintf("%s:%s/%s",
+		conf.Env.GetString("MARTIN_HOST"), conf.Env.GetString("MARTIN_PORT"),
+		proxyPath)
+	// Proxy
+	err := proxy.Do(ctx, url)
+	if err != nil {
+		return err
+	}
+	// Remove Server header from response
+	ctx.Response().Header.Del(fiber.HeaderServer)
+	return nil
 }

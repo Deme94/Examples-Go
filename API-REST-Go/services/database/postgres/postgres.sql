@@ -82,6 +82,7 @@ CREATE TABLE features (
   user_id VARCHAR ( 50 ) NOT NULL,
   CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id)
 );
+SELECT UpdateGeometrySRID('public', 'features', 'geom', '4326') ;
 SELECT create_hypertable('features','timestamp');
 CREATE INDEX ix_geom_timestamp ON features (geom, timestamp DESC); -- efficient queries on geom and timestamp
 ALTER TABLE features SET ( -- enables data compression
@@ -90,3 +91,33 @@ ALTER TABLE features SET ( -- enables data compression
   timescaledb.compress_segmentby = 'user_id'
 );
 SELECT add_compression_policy('features', INTERVAL '2 weeks'); -- add compression policy for 2 weeks old data
+-- MapLibre Martin function
+CREATE OR REPLACE FUNCTION function_zxy_query(z integer, x integer, y integer, query_params json) RETURNS bytea AS $$
+DECLARE
+  mvt bytea;
+BEGIN
+  IF json_typeof(query_params->'fromDate') = 'string' AND json_typeof(query_params->'toDate') = 'string' THEN -- if fromDate and toDate params exist
+    SELECT INTO mvt ST_AsMVT(tile, 'function_zxy_query', 4096, 'geom') FROM (
+      SELECT
+        ST_AsMVTGeom(ST_Transform(ST_CurveToLine(geom), 3857), ST_TileEnvelope(z, x, y), 4096, 64, true) AS geom
+      FROM features
+      WHERE geom && ST_Transform(ST_TileEnvelope(z, x, y), 4326)
+      AND user_id = (query_params->>'userId')::varchar -- cast varchar
+      AND timestamp >= (query_params->>'fromDate')::timestamp -- cast timestamp
+      AND timestamp <= (query_params->>'toDate')::timestamp -- cast timestamp
+    ) as tile WHERE geom IS NOT NULL;
+  ELSE -- if fromDate and toDate do not exist, get most recent records
+    SELECT INTO mvt ST_AsMVT(tile, 'function_zxy_query', 4096, 'geom') FROM (
+      SELECT
+        ST_AsMVTGeom(ST_Transform(ST_CurveToLine(geom), 3857), ST_TileEnvelope(z, x, y), 4096, 64, true) AS geom
+      FROM features
+      WHERE geom && ST_Transform(ST_TileEnvelope(z, x, y), 4326)
+      AND user_id = (query_params->>'userId')::varchar -- cast varchar
+      ORDER BY timestamp DESC 
+      LIMIT 1
+    ) as tile WHERE geom IS NOT NULL;
+  END IF;
+
+  RETURN mvt;
+END
+$$ LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE;

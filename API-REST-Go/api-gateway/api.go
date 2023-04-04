@@ -39,6 +39,9 @@ func NewRouter() *fiber.App {
 	pvt := api.Group("/private", middleware.CheckToken)
 	pvtVer := pvt.Group("/verified", middleware.VerifyEmail)
 
+	gis := app.Group(conf.Conf.GetString("gisBasePath"), middleware.CORS())
+	gis.Use(middleware.CORS(), middleware.CheckToken, middleware.VerifyEmail)
+
 	// Api status path
 	api.Get("/status", func(ctx *fiber.Ctx) error {
 		appStatus := struct {
@@ -111,6 +114,7 @@ func NewRouter() *fiber.App {
 	pvtVer.Post("/features", middleware.CheckPermission("features", "create"), controllers.Feature.Insert)
 	pvtVer.Get("/features", middleware.CheckPermission("features", "read"), controllers.Feature.GetAll)
 	pvtVer.Get("/features/:userId", middleware.CheckPermission("features", "read"), controllers.Feature.GetByUserID)
+	gis.Get("/maplibre-martin/**", middleware.CheckPermission("features", "read"), controllers.Feature.GetVectorTiles)
 
 	pvtVer.Get("/assets", middleware.CheckPermission("assets", "read"), controllers.Asset.GetAll)
 	pvtVer.Get("/assets/:id", middleware.CheckPermission("assets", "read"), controllers.Asset.Get)
