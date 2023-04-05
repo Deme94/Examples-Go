@@ -7,15 +7,17 @@ import (
 	"net/http"
 )
 
+var Url string
+
 func Setup() error {
 	// Read conf
 	host := conf.Env.GetString("MARTIN_HOST")
 	port := conf.Env.GetString("MARTIN_PORT")
 
-	url := host + ":" + port + "/health"
+	Url = host + ":" + port
 
 	// Hacer la solicitud HTTP
-	resp, err := http.Get(url)
+	resp, err := http.Get(Url + "/health")
 	if err != nil {
 		return err
 	}

@@ -3,9 +3,9 @@ package feature
 import (
 	"API-REST/api-gateway/controllers/feature/payloads"
 	util "API-REST/api-gateway/utilities"
-	"API-REST/services/conf"
 	"API-REST/services/database/postgres/models/feature"
 	psql "API-REST/services/database/postgres/predicates"
+	"API-REST/services/gis"
 	"API-REST/services/logger"
 	"errors"
 	"fmt"
@@ -107,8 +107,8 @@ func (c *Controller) GetVectorTiles(ctx *fiber.Ctx) error {
 		proxyPath += "?" + string(queryParams)
 	}
 
-	url := fmt.Sprintf("%s:%s/%s",
-		conf.Env.GetString("MARTIN_HOST"), conf.Env.GetString("MARTIN_PORT"),
+	url := fmt.Sprintf("%s/%s",
+		gis.Url,
 		proxyPath)
 	// Proxy
 	err := proxy.Do(ctx, url)
